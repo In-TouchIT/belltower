@@ -1,0 +1,27 @@
+# Build artifacts
+/bin
+/bin/
+
+# Data files
+data/
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Coverage
+coverage.out

@@ -1,0 +1,225 @@
+Provider,Official status page,What it covers,Category
+Anthropic Claude,https://status.claude.com/,"Claude AI, API, and web services availability",AI/ML
+OpenAI,https://status.openai.com/,OpenAI API and ChatGPT availability,AI/ML
+Veeam Software,https://vdcstatus.veeam.com/,Veeam Backup and Replication and cloud services,Backup
+Cox,https://cox.statuspage.io,"Cox cable internet, TV, and phone services",Cable/ISP
+Spectrum,https://spectrum.statuspage.io,"Spectrum cable internet, TV, and voice services",Cable/ISP
+Xfinity,https://www.xfinity.com/support/status,"Xfinity cable internet, TV, and phone services",Cable/ISP
+Akamai,https://www.akamaistatus.com,"CDN, DNS, security and edge services",Cloud
+Amazon AWS,https://health.aws.amazon.com/health/status,"EC2, S3, RDS, Lambda, Route 53, etc.",Cloud
+CDN77,https://client.cdn77.com/support/status,CDN77 content delivery network,Cloud
+Cloudflare,https://www.cloudflarestatus.com/,"Cloudflare Status: DNS, CDN, Workers, R2, WARP, Zero Trust, network POPs",Cloud
+DigitalOcean,https://status.digitalocean.com/,DigitalOcean cloud infrastructure,Cloud
+Fastly,https://www.fastlystatus.com/,"CDN, Compute, API and edge network",Cloud
+Google Cloud,https://status.cloud.google.com,GCP services by product and region,Cloud
+IBM Cloud,https://cloud.ibm.com/status,IBM Cloud infrastructure/services,Cloud
+Microsoft Azure,https://azure.status.microsoft/en-us/status,"Azure compute, storage, networking, and platform services",Cloud
+Oracle Cloud,https://ocistatus.oraclecloud.com,OCI services by region,Cloud
+ColoBlxs,https://status.coloblox.com/,ColoBlxs data center and colocation services,Colocation
+Intuit Quickbooks,https://quickbooks.intuit.com/status,"QuickBooks, TurboTax, TaxAct, ProSeries",Financial SaaS
+Ramp,No dedicated status page available,Ramp physical/virtual cards and expense management,Financial SaaS
+IRS,https://www.irs.gov,IRS e-Services and tax filing system availability,Government
+SSA,https://ssa.statuspage.io,Social Security Administration online services and portals,Government
+ConnectWise,https://status.connectwise.com,"ConnectWise Manage, Automate, Control, Sell",PSA
+HaloPSA,https://status.haloservicesolutions.com,HaloPSA PSA platform and integrations,PSA
+NinjaOne,https://status.ninjaone.com/,"RMM, patching, and remote access",RMM
+Atlassian,https://status.atlassian.com/,"Jira, Confluence, Bitbucket, Trello",SaaS
+Cisco Webex,https://status.webex.com/,"Webex meetings, calling, and collaboration",SaaS
+Datadog,https://status.datadoghq.com,Datadog infrastructure and APM monitoring,SaaS
+Docusign,https://health.docusign.com/status,Docusign eSignature and agreement cloud,SaaS
+Dropbox,https://status.dropbox.com/,"Dropbox file sync, sharing, and Paper",SaaS
+GitHub,https://www.githubstatus.com/,"Git, Actions, API, Packages, Copilot, Codespaces",SaaS
+GitLab,https://status.gitlab.com/,"GitLab CI/CD, Registry, and SaaS platform",SaaS
+Google Workspace,https://www.google.com/appsstatus/dashboard/,"Gmail, Drive, Meet, Calendar, Admin Console",SaaS
+Heroku,https://status.heroku.com,Heroku platform/services,SaaS
+HubSpot,https://status.hubspot.com/,HubSpot CRM and marketing platform,SaaS
+Kaseya,https://status.kaseya.com/,"Kaseya VSA, Passly, and IT Complete platform",SaaS
+Microsoft 365,https://status.cloud.microsoft/,"Microsoft 365 apps, services, and admin portals",SaaS
+New Relic,https://status.newrelic.com/,New Relic observability platform,SaaS
+Salesforce,https://status.salesforce.com/,Salesforce services and individual instances,SaaS
+Scalepad,https://status.scalepad.com,Scalepad IT Asset Management and lifecycle services,SaaS
+Shopify,https://www.shopifystatus.com/,Shopify e-commerce platform and APIs,SaaS
+Slack,https://slack-status.com/,"Slack messaging, calls, and integrations",SaaS
+Stripe,https://status.stripe.com/,Stripe payment processing and APIs,SaaS
+Twilio,https://status.twilio.com/,"Twilio SMS, Voice, Verify, SendGrid",SaaS
+Xero,https://status.xero.com/,"Xero accounting, invoicing, and bank feeds",SaaS
+Zendesk,https://status.zendesk.com,"Zendesk Support, Guide, Chat, Sell, Talk",SaaS
+Zoho,https://us.zohostatus.com/,Zoho office suite and business apps,SaaS
+Zoom,https://www.zoomstatus.com/,"Zoom meetings, phone, webinars, chat",SaaS
+Todyl,https://status.todyl.com,"SASE, ZTNA, SD-WAN, secure internet access",SASE
+Duo Security,https://status.duo.com,"Duo MFA, Access, PhoneFactor, and Duo SSO",Security
+Mimecast,https://status.mimecast.com,"Email security, archiving, and continuity",Security
+Okta,https://status.okta.com/,Okta Identity Cloud and SSO,Security
+Proofpoint,https://status.proofpointsa.com/,"Email security, ePO, and Threat Response",Security
+AT&T,https://att.statuspage.io,"AT&T network, internet, and phone services",Telecom
+Cogent,https://ecogent.cogentco.com/network-status,Cogent Communications network and internet backbone,Telecom
+Lumen,https://lumen.statuspage.io/,Lumen (formerly CenturyLink) network and cloud services,Telecom
+T-Mobile,https://www.t-mobile.com/support/status,T-Mobile mobile network and internet services,Telecom
+Verizon,https://verizon.statuspage.io,"Verizon Fios, LTE, 5G, and enterprise network services",Telecom
+Clearfly,https://status.clearfly.net/,Clearfly SIP trunking and voice services,Telephony
+Servosity,https://status.servosity.com/,"Servosity backup, ImageManager, SPX, and cloud vaulting",Backup
+Acronis,https://partners.acronis.com/,Acronis Cyber Protect datacenter status (partner login required),Backup
+Backblaze,https://status.backblaze.com/,Backblaze B2 object storage and Computer Backup,Backup
+Wasabi,https://status.wasabi.com/,Wasabi hot cloud object storage by region,Backup
+Keepit,https://status.keepit.com/,"Keepit SaaS backup for M365, Entra, Salesforce",Backup
+Afi.ai,https://afi.statuspage.io/,Afi backup for Microsoft 365 and Google Workspace,Backup
+Pax8,https://status.pax8.com/,"Pax8 marketplace, provisioning, and billing",Distribution
+Hudu,No dedicated status page available,Hudu IT documentation platform,Documentation
+IT Glue,No public status page (page retired),IT Glue documentation platform,Documentation
+Rewst,https://status.rewst.io/,Rewst automation platform and CRUs,Automation
+Auvik,https://status.auvik.com/,"Auvik network monitoring, collectors, and SaaS management",Network Monitoring
+Liongard,https://status.liongard.com/,Liongard inspectors and Roar platform,Network Monitoring
+ThousandEyes,https://status.thousandeyes.com/,Cisco ThousandEyes network intelligence,Network Monitoring
+Admiral,https://status.admiralplatform.com/status/admiral-cloud,"Admiral Cloud MikroTik remote management (RemoteWinBox) by region: USA, Europe, Africa, LATAM, Japan",Network
+Ubiquiti / UniFi,https://status.ui.com/,"UniFi Site Manager, UI.com cloud, UID, Talk, Protect",Network
+Cisco Meraki,https://status.meraki.net/,Meraki cloud dashboard and shard availability,Network
+Cradlepoint,https://status.cradlepoint.com/,Cradlepoint NetCloud Manager and LTE/5G routers,Network
+Verkada,https://status.verkada.com/,"Verkada Command, cameras, access control, sensors",Network
+Tailscale,https://status.tailscale.com/,"Tailscale coordination server, DERP relays, control plane",Network
+ZeroTier,https://status.zerotier.com/,ZeroTier Central and root servers,Network
+Twingate,https://status.twingate.com/,Twingate ZTNA connectors and controller,Network
+Zscaler,https://trust.zscaler.com/,"Zscaler ZIA, ZPA, ZDX cloud health by cloud",SASE
+Netskope,https://trust.netskope.com/,Netskope Security Cloud and NewEdge POPs,SASE
+Palo Alto Networks,https://status.paloaltonetworks.com/,"Prisma Access, Cortex XDR, Strata Cloud Manager",Security
+SonicWall,https://status.sonicwall.com/,"SonicWall Capture Client, MySonicWall, Cloud Edge",Security
+WatchGuard,https://status.watchguard.com/,"WatchGuard Cloud, AuthPoint, EPDR",Security
+Sophos,https://status.sophos.com/,"Sophos Central, Intercept X, Firewall Manager, MDR",Security
+SentinelOne,https://status.sentinelone.com/,SentinelOne Singularity console and agents by region,Security
+CrowdStrike,https://supportportal.crowdstrike.com/s/status,Falcon platform (customer portal login required),Security
+Huntress,https://status.huntress.io/,"Huntress EDR, MDR for M365, SIEM, and portal",Security
+ThreatLocker,https://threatlocker.statuspage.io/,"ThreatLocker portal, agents, Ringfencing, Detect",Security
+Blackpoint Cyber,No public status page (page retired),Blackpoint SNAP-Defense MDR,Security
+Arctic Wolf,https://status.arcticwolf.com/,Arctic Wolf Concierge Security Platform,Security
+Bitdefender GravityZone,https://status.gravityzone.bitdefender.com/,GravityZone console and cloud services,Security
+ESET,https://status.eset.com/,"ESET PROTECT Cloud, LiveGuard, licensing",Security
+Trend Micro,https://status.trendmicro.com/en-US/,"Trend Vision One, Worry-Free, Apex One",Security
+ThreatDown (Malwarebytes),https://status.threatdown.com/,ThreatDown Nebula console and agents,Security
+OpenText (Webroot / Carbonite),https://status.opentext.com/,"Webroot SecureAnywhere, DNS Protection, Carbonite",Security
+VIPRE,https://status.vipre.com/,"VIPRE endpoint, email security, and console",Security
+Hornetsecurity,https://live.hornet-status.com/,"365 Total Protection, email security, VM backup",Security
+IRONSCALES,https://status.ironscales.com/,IRONSCALES email security platform,Security
+Abnormal Security,https://status.abnormalsecurity.com/,Abnormal email security platform,Security
+Vade,https://status.vadesecure.com/,Vade for M365 email filtering,Security
+Barracuda,https://status.barracuda.com/,"Barracuda Email Gateway, Backup, RMM, XDR",Security
+Cisco Umbrella,https://status.umbrella.cisco.com/,"Umbrella DNS filtering, SIG, resolvers",Security
+DNSFilter,https://status.dnsfilter.com/,DNSFilter resolvers and dashboard,Security
+Quad9,https://uptime.quad9.net/,Quad9 public DNS resolver availability,Security
+KnowBe4,https://status.knowbe4.com/,"KnowBe4 KMSAT, PhishER, training console",Security
+SaaS Alerts,https://saasalerts.statuspage.io/,SaaS Alerts monitoring and alerting platform,Security
+Blumira,https://status.blumira.com/,Blumira SIEM and detection platform,Security
+Tenable,https://status.tenable.com/,"Tenable.io, Nessus, Tenable One",Security
+Rapid7,https://status.rapid7.com/,"InsightIDR, InsightVM, Insight platform",Security
+Qualys,https://status.qualys.com/,Qualys Cloud Platform by POD,Security
+CyberArk,https://status.cyberark.com/,"CyberArk Identity, Privilege Cloud",Security
+Automox,https://status.automox.com/,Automox patch management console and agents,Patching
+Action1,https://status.action1.com/,Action1 patch management cloud,Patching
+PDQ,https://status.pdq.com/,"PDQ Connect, Deploy, Inventory",Patching
+Ivanti,https://status.ivanticloud.com/,"Ivanti Neurons, EPM, Connect Secure cloud",Patching
+1Password,https://status.1password.com/,1Password sync and admin console,Identity
+Bitwarden,https://status.bitwarden.com/,Bitwarden vault sync and web app,Identity
+Keeper Security,https://keepersecurity.statuspage.io/,Keeper vault and admin console,Identity
+LastPass,https://status.lastpass.com/,LastPass vault sync and admin,Identity
+JumpCloud,https://status.jumpcloud.com/,"JumpCloud directory, SSO, MDM, RADIUS",Identity
+Ping Identity,https://status.pingidentity.com/,PingOne and PingFederate cloud,Identity
+Auth0,https://status.auth0.com/,Auth0 tenants by region,Identity
+WorkOS,https://status.workos.com/,WorkOS SSO and directory sync,Identity
+Microsoft Azure DevOps,https://status.dev.azure.com/,"Azure Boards, Repos, Pipelines, Artifacts",SaaS
+Microsoft Power Platform,https://admin.powerplatform.microsoft.com/status,"Power Apps, Power Automate, Dataverse (admin login)",SaaS
+Windows Release Health,https://learn.microsoft.com/en-us/windows/release-health/,Windows known issues and update rollout status,SaaS
+Apple,https://www.apple.com/support/systemstatus/,"iCloud, App Store, APNs, Apple Business Manager",SaaS
+Jamf,https://status.jamf.com/,"Jamf Pro, Jamf Now, Jamf Connect",MDM
+Kandji,https://status.kandji.io/,Kandji Apple device management,MDM
+Mosyle,https://status.mosyle.com/,Mosyle Apple MDM,MDM
+Addigy,https://status.addigy.com/,Addigy Apple device management,MDM
+Citrix Cloud,https://status.cloud.com/,"Citrix DaaS, Workspace, Gateway Service",VDI
+Nutanix,https://status.nutanix.com/,"Nutanix Cloud Services, Prism Central, Move",Virtualization
+Broadcom (VMware),https://status.broadcom.com/,"VMware Cloud, Tanzu, licensing portal",Virtualization
+Cisco,https://www.cisco.com/c/en/us/support/web/cloud-status.html,Cisco cloud services and portals,Vendor Portal
+Dell,https://www.dell.com/support/incidents-alerts/en-us,Dell support portal incidents and alerts,Vendor Portal
+Broadcom Symantec,https://status.broadcom.com/,Symantec Enterprise cloud services,Vendor Portal
+N-able,https://status.n-able.com/,"N-central, N-sight, Cove Data Protection",RMM
+Atera,https://status.atera.com/,Atera RMM and PSA cloud,RMM
+Syncro,https://www.syncrostatus.com/,Syncro RMM and PSA,RMM
+Level,https://status.level.io/en,Level remote monitoring and access,RMM
+ManageEngine,https://status.manageengine.com/,"Endpoint Central Cloud, ServiceDesk Plus Cloud",RMM
+CloudRadial,https://status.cloudradial.com/,CloudRadial client portal,MSP Tools
+MSPbots,https://status.mspbots.ai/,MSPbots dashboards and data connectors,MSP Tools
+Compliance Scorecard,https://compliancescorecard.statuspage.io/,Compliance Scorecard platform,Compliance
+Vanta,https://status.vanta.com/,Vanta compliance automation and integrations,Compliance
+Drata,https://status.drata.com/,Drata compliance automation,Compliance
+GoTo,https://status.goto.com/,"GoTo Connect, Resolve, Meeting, LastPass-adjacent",Telephony
+RingCentral,https://status.ringcentral.com/,"RingCentral MVP, phone, fax, SMS",Telephony
+8x8,https://status.8x8.com/,8x8 XCaaS voice and contact center,Telephony
+Nextiva,https://status.nextiva.com/,Nextiva voice and business communications,Telephony
+Dialpad,https://status.dialpad.com/,Dialpad voice and contact center,Telephony
+Crexendo,https://status.crexendo.com/,Crexendo cloud communications,Telephony
+Bandwidth,https://status.bandwidth.com/,"Bandwidth voice, messaging, E911, number porting",Telephony
+Telnyx,https://status.telnyx.com/,"Telnyx SIP, SMS, and numbers",Telephony
+Flowroute,https://status.flowroute.com/,Flowroute SIP trunking and messaging,Telephony
+Talkdesk,https://status.talkdesk.com/,Talkdesk contact center,Telephony
+TeamViewer,https://status.teamviewer.com/,TeamViewer remote access routers and console,Remote Access
+Splashtop,https://status.splashtop.com/,Splashtop remote access and SOS,Remote Access
+Linode (Akamai),https://status.linode.com/,Linode compute and storage by region,Cloud
+Vultr,https://status.vultr.com/,Vultr cloud compute by location,Cloud
+Hetzner,https://status.hetzner.com/,Hetzner cloud and dedicated servers,Cloud
+OVHcloud,https://www.status-ovhcloud.com/,OVHcloud infrastructure and datacenters,Cloud
+Vercel,https://www.vercel-status.com/,Vercel builds and edge network,Cloud
+Netlify,https://www.netlifystatus.com/,Netlify builds and CDN,Cloud
+Docker,https://www.dockerstatus.com/,"Docker Hub registry, builds, Desktop",DevOps
+npm,https://status.npmjs.org/,npm registry and website,DevOps
+PyPI,https://status.python.org/,"PyPI, python.org, docs",DevOps
+HashiCorp,https://status.hashicorp.com/,"Terraform Cloud, Vault, Consul, Boundary",DevOps
+Elastic,https://status.elastic.co/,Elastic Cloud by region,DevOps
+MongoDB,https://status.mongodb.com/,MongoDB Atlas by region,DevOps
+Redis,https://status.redis.io/,Redis Cloud,DevOps
+Snowflake,https://status.snowflake.com/,Snowflake by cloud and region,DevOps
+Grafana,https://status.grafana.com/,Grafana Cloud stacks and alerting,Monitoring
+Sentry,https://status.sentry.io/,Sentry error ingestion and alerting,Monitoring
+PagerDuty,https://status.pagerduty.com/,"PagerDuty alerting, notifications, mobile",Monitoring
+Pingdom,https://status.pingdom.com/,Pingdom synthetic monitoring,Monitoring
+UptimeRobot,https://status.uptimerobot.com/,UptimeRobot monitors and notifications,Monitoring
+StatusCake,https://status.statuscake.com/,StatusCake uptime monitoring,Monitoring
+Atlassian Opsgenie,https://opsgenie.status.atlassian.com/,Opsgenie alerting and on-call,Monitoring
+GoDaddy,https://status.godaddy.com/,"GoDaddy domains, DNS, hosting, email",Domains/DNS
+Namecheap,https://www.namecheap.com/status-updates/,"Namecheap domains, DNS, hosting",Domains/DNS
+DigiCert,https://status.digicert.com/,"DigiCert CertCentral, OCSP, CRL",Domains/DNS
+Let's Encrypt,https://letsencrypt.status.io/,"ACME API, OCSP, issuance",Domains/DNS
+SendGrid,https://status.twilio.com/,SendGrid email delivery (under Twilio),Email
+Mailgun,https://status.mailgun.com/,Mailgun sending and inbound routing,Email
+Postmark,https://status.postmarkapp.com/,Postmark transactional email,Email
+Mailchimp,https://status.mailchimp.com/,"Mailchimp campaigns, automations, API",Email
+Exclaimer,https://status.exclaimer.com/,Exclaimer email signature management,Email
+Mailprotector,https://status.mailprotector.com/,Mailprotector email security and filtering,Email
+Adobe,https://status.adobe.com/,"Creative Cloud, Acrobat, Document Cloud",SaaS
+Box,https://status.box.com/,Box content cloud and APIs,SaaS
+Egnyte,https://status.egnyte.com/,Egnyte file collaboration and governance,SaaS
+ShareFile,https://status.sharefile.com/,Citrix ShareFile file sharing,SaaS
+Notion,https://www.notion-status.com/,"Notion workspace, API, AI",SaaS
+Monday.com,https://status.monday.com/,monday.com work OS,SaaS
+Asana,https://status.asana.com/,Asana work management,SaaS
+Airtable,https://status.airtable.com/,Airtable bases and automations,SaaS
+Smartsheet,https://status.smartsheet.com/,Smartsheet platform and integrations,SaaS
+Miro,https://status.miro.com/,Miro boards and collaboration,SaaS
+Figma,https://status.figma.com/,"Figma design, FigJam, Dev Mode",SaaS
+Canva,https://www.canvastatus.com/,Canva editor and publishing,SaaS
+Calendly,https://calendlystatus.com/,Calendly scheduling and integrations,SaaS
+Freshworks,https://status.freshworks.com/,"Freshdesk, Freshservice, Freshsales",SaaS
+ServiceNow,https://trust.servicenow.com/,ServiceNow instances and datacenters,SaaS
+Meta,https://metastatuspage.com/,"Meta business APIs, WhatsApp Business, Ads",SaaS
+PayPal,https://www.paypal-status.com/product/production,PayPal payments and APIs,Financial SaaS
+Square,https://www.issquareup.com/,"Square POS, payments, Dashboard",Financial SaaS
+Plaid,https://status.plaid.com/,Plaid bank connections by institution,Financial SaaS
+Expensify,https://status.expensify.com/,Expensify expense reports and cards,Financial SaaS
+NetSuite,https://status.netsuite.com/,Oracle NetSuite ERP by account region,Financial SaaS
+FreshBooks,https://status.freshbooks.com/,FreshBooks accounting and invoicing,Financial SaaS
+Wave,https://status.wave.com/,Wave accounting and payments,Financial SaaS
+Gusto,https://status.gusto.com/,Gusto payroll and benefits,Financial SaaS
+Rippling,https://status.rippling.com/,"Rippling HR, payroll, IT",Financial SaaS
+ADP,https://status.adp.com/,"ADP Workforce Now, RUN, payroll",Financial SaaS
+xAI,https://status.x.ai/,Grok API and console,AI/ML
+Mistral,https://status.mistral.ai/,Mistral API and Le Chat,AI/ML
+Perplexity,https://status.perplexity.com/,Perplexity search and API,AI/ML
+Cohere,https://status.cohere.com/,Cohere API and models,AI/ML
+Hugging Face,https://status.huggingface.co/,"Hub, Inference API, Spaces",AI/ML
+PaperCut,https://status.papercut.com/,PaperCut Hive and Pocket print management,Printing
+Printix,https://status.printix.net/,Printix cloud print management,Printing

@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  belltower:
+    image: belltower:latest
+    build: .
+    container_name: belltower
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./data:/data
+      - ./providers.yaml:/providers.yaml:ro
+    environment:
+      - BELLTOWER_POLL_INTERVAL=10m
+      - BELLTOWER_POLL_TIMEOUT=10s
+      - BELLTOWER_CONCURRENCY=20
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "daemon off", "http://localhost:8088/api/v1/health && exit 0 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

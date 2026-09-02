@@ -1,0 +1,1793 @@
+providers:
+    - id: 1password
+      name: 1Password
+      category: Identity
+      page_url: https://status.1password.com/
+      adapter: statuspage
+      endpoint: https://status.1password.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: 8x8
+      name: 8x8
+      category: Telephony
+      page_url: https://status.8x8.com/
+      adapter: statuspage
+      endpoint: https://status.8x8.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: adp
+      name: ADP
+      category: Financial SaaS
+      page_url: https://status.adp.com/
+      adapter: statuspage
+      endpoint: https://status.adp.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: att
+      name: AT&T
+      category: Telecom
+      page_url: https://att.statuspage.io
+      adapter: statuspage
+      endpoint: https://att.statuspage.io/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: abnormal-security
+      name: Abnormal Security
+      category: Security
+      page_url: https://status.abnormalsecurity.com/
+      adapter: statuspage
+      endpoint: https://status.abnormalsecurity.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: acronis
+      name: Acronis
+      category: Backup
+      page_url: https://partners.acronis.com/
+      adapter: manual
+      tier: 4
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: action1
+      name: Action1
+      category: Patching
+      page_url: https://status.action1.com/
+      adapter: statuspage
+      endpoint: https://status.action1.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: addigy
+      name: Addigy
+      category: MDM
+      page_url: https://status.addigy.com/
+      adapter: statuspage
+      endpoint: https://status.addigy.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: admiral
+      name: Admiral
+      category: Network
+      page_url: https://status.admiralplatform.com/status/admiral-cloud
+      adapter: statuspage
+      endpoint: https://status.admiralplatform.com/status/admiral-cloud/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: adobe
+      name: Adobe
+      category: SaaS
+      page_url: https://status.adobe.com/
+      adapter: statuspage
+      endpoint: https://status.adobe.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: afiai
+      name: Afi.ai
+      category: Backup
+      page_url: https://afi.statuspage.io/
+      adapter: statuspage
+      endpoint: https://afi.statuspage.io/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: airtable
+      name: Airtable
+      category: SaaS
+      page_url: https://status.airtable.com/
+      adapter: statuspage
+      endpoint: https://status.airtable.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: akamai
+      name: Akamai
+      category: Cloud
+      page_url: https://www.akamaistatus.com
+      adapter: statuspage
+      endpoint: https://www.akamaistatus.com/api/v2/summary.json
+      tier: 1
+      enabled: true
+    - id: amazon-aws
+      name: Amazon AWS
+      category: Cloud
+      page_url: https://health.aws.amazon.com/health/status
+      adapter: aws
+      endpoint: https://health.aws.amazon.com/public/currentevents
+      tier: 1
+      enabled: true
+    - id: anthropic-claude
+      name: Anthropic Claude
+      category: AI/ML
+      page_url: https://status.claude.com/
+      adapter: statuspage
+      endpoint: https://status.claude.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: apple
+      name: Apple
+      category: SaaS
+      page_url: https://www.apple.com/support/systemstatus/
+      adapter: manual
+      tier: 3
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: arctic-wolf
+      name: Arctic Wolf
+      category: Security
+      page_url: https://status.arcticwolf.com/
+      adapter: statuspage
+      endpoint: https://status.arcticwolf.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: asana
+      name: Asana
+      category: SaaS
+      page_url: https://status.asana.com/
+      adapter: statuspage
+      endpoint: https://status.asana.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: atera
+      name: Atera
+      category: RMM
+      page_url: https://status.atera.com/
+      adapter: statuspage
+      endpoint: https://status.atera.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: atlassian
+      name: Atlassian
+      category: SaaS
+      page_url: https://status.atlassian.com/
+      adapter: statuspage
+      endpoint: https://status.atlassian.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: atlassian-opsgenie
+      name: Atlassian Opsgenie
+      category: Monitoring
+      page_url: https://opsgenie.status.atlassian.com/
+      adapter: statuspage
+      endpoint: https://opsgenie.status.atlassian.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: auth0
+      name: Auth0
+      category: Identity
+      page_url: https://status.auth0.com/
+      adapter: statuspage
+      endpoint: https://status.auth0.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: automox
+      name: Automox
+      category: Patching
+      page_url: https://status.automox.com/
+      adapter: statuspage
+      endpoint: https://status.automox.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: auvik
+      name: Auvik
+      category: Network Monitoring
+      page_url: https://status.auvik.com/
+      adapter: statuspage
+      endpoint: https://status.auvik.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: backblaze
+      name: Backblaze
+      category: Backup
+      page_url: https://status.backblaze.com/
+      adapter: statuspage
+      endpoint: https://status.backblaze.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: bandwidth
+      name: Bandwidth
+      category: Telephony
+      page_url: https://status.bandwidth.com/
+      adapter: statuspage
+      endpoint: https://status.bandwidth.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: barracuda
+      name: Barracuda
+      category: Security
+      page_url: https://status.barracuda.com/
+      adapter: statuspage
+      endpoint: https://status.barracuda.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: bitdefender-gravityzone
+      name: Bitdefender GravityZone
+      category: Security
+      page_url: https://status.gravityzone.bitdefender.com/
+      adapter: statuspage
+      endpoint: https://status.gravityzone.bitdefender.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: bitwarden
+      name: Bitwarden
+      category: Identity
+      page_url: https://status.bitwarden.com/
+      adapter: statuspage
+      endpoint: https://status.bitwarden.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: blackpoint-cyber
+      name: Blackpoint Cyber
+      category: Security
+      page_url: No public status page (page retired)
+      adapter: manual
+      tier: 2
+      enabled: false
+      notes: No dedicated status page
+    - id: blumira
+      name: Blumira
+      category: Security
+      page_url: https://status.blumira.com/
+      adapter: statuspage
+      endpoint: https://status.blumira.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: box
+      name: Box
+      category: SaaS
+      page_url: https://status.box.com/
+      adapter: statuspage
+      endpoint: https://status.box.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: broadcom-vmware
+      name: Broadcom (VMware)
+      category: Virtualization
+      page_url: https://status.broadcom.com/
+      adapter: sorryapp
+      endpoint: https://status.broadcom.com/api/v1/status
+      tier: 4
+      enabled: true
+    - id: broadcom-symantec
+      name: Broadcom Symantec
+      category: Vendor Portal
+      page_url: https://status.broadcom.com/
+      adapter: manual
+      tier: 4
+      enabled: true
+      notes: Shares endpoint with Broadcom VMware - check status.broadcom.com manually
+    - id: cdn77
+      name: CDN77
+      category: Cloud
+      page_url: https://client.cdn77.com/support/status
+      adapter: betterstack
+      endpoint: https://client.cdn77.com/support/status/index.json
+      tier: 1
+      enabled: true
+    - id: calendly
+      name: Calendly
+      category: SaaS
+      page_url: https://calendlystatus.com/
+      adapter: statuspage
+      endpoint: https://calendlystatus.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: canva
+      name: Canva
+      category: SaaS
+      page_url: https://www.canvastatus.com/
+      adapter: statuspage
+      endpoint: https://www.canvastatus.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: cisco
+      name: Cisco
+      category: Vendor Portal
+      page_url: https://www.cisco.com/c/en/us/support/web/cloud-status.html
+      adapter: statuspage
+      endpoint: https://www.cisco.com/c/en/us/support/web/cloud-status.html/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: cisco-meraki
+      name: Cisco Meraki
+      category: Network
+      page_url: https://status.meraki.net/
+      adapter: statuspage
+      endpoint: https://status.meraki.net/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: cisco-umbrella
+      name: Cisco Umbrella
+      category: Security
+      page_url: https://status.umbrella.cisco.com/
+      adapter: statuspage
+      endpoint: https://status.umbrella.cisco.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: cisco-webex
+      name: Cisco Webex
+      category: SaaS
+      page_url: https://status.webex.com/
+      adapter: statuspage
+      endpoint: https://status.webex.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: citrix-cloud
+      name: Citrix Cloud
+      category: VDI
+      page_url: https://status.cloud.com/
+      adapter: statuspage
+      endpoint: https://status.cloud.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: clearfly
+      name: Clearfly
+      category: Telephony
+      page_url: https://status.clearfly.net/
+      adapter: statuspage
+      endpoint: https://status.clearfly.net/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: cloudradial
+      name: CloudRadial
+      category: MSP Tools
+      page_url: https://status.cloudradial.com/
+      adapter: betterstack
+      endpoint: https://status.cloudradial.com/index.json
+      tier: 4
+      enabled: true
+    - id: cloudflare
+      name: Cloudflare
+      category: Cloud
+      page_url: https://www.cloudflarestatus.com/
+      adapter: statuspage
+      endpoint: https://www.cloudflarestatus.com/api/v2/summary.json
+      tier: 1
+      enabled: true
+    - id: cogent
+      name: Cogent
+      category: Telecom
+      page_url: https://ecogent.cogentco.com/network-status
+      adapter: manual
+      tier: 3
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: cohere
+      name: Cohere
+      category: AI/ML
+      page_url: https://status.cohere.com/
+      adapter: statuspage
+      endpoint: https://status.cohere.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: coloblxs
+      name: ColoBlxs
+      category: Colocation
+      page_url: https://status.coloblox.com/
+      adapter: statuspage
+      endpoint: https://status.coloblox.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: compliance-scorecard
+      name: Compliance Scorecard
+      category: Compliance
+      page_url: https://compliancescorecard.statuspage.io/
+      adapter: statuspage
+      endpoint: https://compliancescorecard.statuspage.io/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: connectwise
+      name: ConnectWise
+      category: PSA
+      page_url: https://status.connectwise.com
+      adapter: statusio
+      endpoint: https://api.status.io/1.0/status/619cf82551fec9053d612f09
+      tier: 4
+      enabled: true
+    - id: cox
+      name: Cox
+      category: Cable/ISP
+      page_url: https://cox.statuspage.io
+      adapter: statuspage
+      endpoint: https://cox.statuspage.io/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: cradlepoint
+      name: Cradlepoint
+      category: Network
+      page_url: https://status.cradlepoint.com/
+      adapter: statuspage
+      endpoint: https://status.cradlepoint.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: crexendo
+      name: Crexendo
+      category: Telephony
+      page_url: https://status.crexendo.com/
+      adapter: statuspage
+      endpoint: https://status.crexendo.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: crowdstrike
+      name: CrowdStrike
+      category: Security
+      page_url: https://supportportal.crowdstrike.com/s/status
+      adapter: manual
+      tier: 2
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: cyberark
+      name: CyberArk
+      category: Security
+      page_url: https://status.cyberark.com/
+      adapter: statuspage
+      endpoint: https://status.cyberark.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: dnsfilter
+      name: DNSFilter
+      category: Security
+      page_url: https://status.dnsfilter.com/
+      adapter: statuspage
+      endpoint: https://status.dnsfilter.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: datadog
+      name: Datadog
+      category: SaaS
+      page_url: https://status.datadoghq.com
+      adapter: statuspage
+      endpoint: https://status.datadoghq.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: dell
+      name: Dell
+      category: Vendor Portal
+      page_url: https://www.dell.com/support/incidents-alerts/en-us
+      adapter: manual
+      tier: 4
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: dialpad
+      name: Dialpad
+      category: Telephony
+      page_url: https://status.dialpad.com/
+      adapter: statuspage
+      endpoint: https://status.dialpad.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: digicert
+      name: DigiCert
+      category: Domains/DNS
+      page_url: https://status.digicert.com/
+      adapter: statuspage
+      endpoint: https://status.digicert.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: digitalocean
+      name: DigitalOcean
+      category: Cloud
+      page_url: https://status.digitalocean.com/
+      adapter: statuspage
+      endpoint: https://status.digitalocean.com/api/v2/summary.json
+      tier: 1
+      enabled: true
+    - id: docker
+      name: Docker
+      category: DevOps
+      page_url: https://www.dockerstatus.com/
+      adapter: statuspage
+      endpoint: https://www.dockerstatus.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: docusign
+      name: Docusign
+      category: SaaS
+      page_url: https://health.docusign.com/status
+      adapter: manual
+      tier: 3
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: drata
+      name: Drata
+      category: Compliance
+      page_url: https://status.drata.com/
+      adapter: statuspage
+      endpoint: https://status.drata.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: dropbox
+      name: Dropbox
+      category: SaaS
+      page_url: https://status.dropbox.com/
+      adapter: statuspage
+      endpoint: https://status.dropbox.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: duo-security
+      name: Duo Security
+      category: Security
+      page_url: https://status.duo.com
+      adapter: statuspage
+      endpoint: https://status.duo.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: eset
+      name: ESET
+      category: Security
+      page_url: https://status.eset.com/
+      adapter: statuspage
+      endpoint: https://status.eset.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: egnyte
+      name: Egnyte
+      category: SaaS
+      page_url: https://status.egnyte.com/
+      adapter: statuspage
+      endpoint: https://status.egnyte.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: elastic
+      name: Elastic
+      category: DevOps
+      page_url: https://status.elastic.co/
+      adapter: statuspage
+      endpoint: https://status.elastic.co/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: exclaimer
+      name: Exclaimer
+      category: Email
+      page_url: https://status.exclaimer.com/
+      adapter: statuspage
+      endpoint: https://status.exclaimer.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: expensify
+      name: Expensify
+      category: Financial SaaS
+      page_url: https://status.expensify.com/
+      adapter: statuspage
+      endpoint: https://status.expensify.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: fastly
+      name: Fastly
+      category: Cloud
+      page_url: https://www.fastlystatus.com/
+      adapter: statuspage
+      endpoint: https://www.fastlystatus.com/api/v2/summary.json
+      tier: 1
+      enabled: true
+    - id: figma
+      name: Figma
+      category: SaaS
+      page_url: https://status.figma.com/
+      adapter: statuspage
+      endpoint: https://status.figma.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: flowroute
+      name: Flowroute
+      category: Telephony
+      page_url: https://status.flowroute.com/
+      adapter: statuspage
+      endpoint: https://status.flowroute.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: freshbooks
+      name: FreshBooks
+      category: Financial SaaS
+      page_url: https://status.freshbooks.com/
+      adapter: statuspage
+      endpoint: https://status.freshbooks.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: freshworks
+      name: Freshworks
+      category: SaaS
+      page_url: https://status.freshworks.com/
+      adapter: statuspage
+      endpoint: https://status.freshworks.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: github
+      name: GitHub
+      category: SaaS
+      page_url: https://www.githubstatus.com/
+      adapter: statuspage
+      endpoint: https://www.githubstatus.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: gitlab
+      name: GitLab
+      category: SaaS
+      page_url: https://status.gitlab.com/
+      adapter: statusio
+      endpoint: https://api.status.io/1.0/status/5b36dc6502d06804c08349f7
+      tier: 3
+      enabled: true
+    - id: godaddy
+      name: GoDaddy
+      category: Domains/DNS
+      page_url: https://status.godaddy.com/
+      adapter: statuspage
+      endpoint: https://status.godaddy.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: goto
+      name: GoTo
+      category: Telephony
+      page_url: https://status.goto.com/
+      adapter: statuspage
+      endpoint: https://status.goto.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: google-cloud
+      name: Google Cloud
+      category: Cloud
+      page_url: https://status.cloud.google.com
+      adapter: gcp
+      endpoint: https://status.cloud.google.com/incidents.json
+      tier: 1
+      enabled: true
+    - id: google-workspace
+      name: Google Workspace
+      category: SaaS
+      page_url: https://www.google.com/appsstatus/dashboard/
+      adapter: gworkspace
+      endpoint: https://www.google.com/appsstatus/dashboard/incidents.json
+      tier: 3
+      enabled: true
+    - id: grafana
+      name: Grafana
+      category: Monitoring
+      page_url: https://status.grafana.com/
+      adapter: statuspage
+      endpoint: https://status.grafana.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: gusto
+      name: Gusto
+      category: Financial SaaS
+      page_url: https://status.gusto.com/
+      adapter: statuspage
+      endpoint: https://status.gusto.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: halopsa
+      name: HaloPSA
+      category: PSA
+      page_url: https://status.haloservicesolutions.com
+      adapter: statusio
+      endpoint: https://api.status.io/1.0/status/63ef45da7ee94905308a1a4a
+      tier: 4
+      enabled: true
+    - id: hashicorp
+      name: HashiCorp
+      category: DevOps
+      page_url: https://status.hashicorp.com/
+      adapter: statuspage
+      endpoint: https://status.hashicorp.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: heroku
+      name: Heroku
+      category: SaaS
+      page_url: https://status.heroku.com
+      adapter: heroku
+      endpoint: https://status.heroku.com/api/v4/current-status
+      tier: 3
+      enabled: true
+    - id: hetzner
+      name: Hetzner
+      category: Cloud
+      page_url: https://status.hetzner.com/
+      adapter: statuspage
+      endpoint: https://status.hetzner.com/api/v2/summary.json
+      tier: 1
+      enabled: true
+    - id: hornetsecurity
+      name: Hornetsecurity
+      category: Security
+      page_url: https://live.hornet-status.com/
+      adapter: statusio
+      endpoint: https://api.status.io/1.0/status/591aaa7fe69f388425000fda
+      tier: 2
+      enabled: true
+    - id: hubspot
+      name: HubSpot
+      category: SaaS
+      page_url: https://status.hubspot.com/
+      adapter: statuspage
+      endpoint: https://status.hubspot.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: hudu
+      name: Hudu
+      category: Documentation
+      page_url: No dedicated status page available
+      adapter: manual
+      tier: 4
+      enabled: false
+      notes: No dedicated status page
+    - id: hugging-face
+      name: Hugging Face
+      category: AI/ML
+      page_url: https://status.huggingface.co/
+      adapter: statuspage
+      endpoint: https://status.huggingface.co/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: huntress
+      name: Huntress
+      category: Security
+      page_url: https://status.huntress.io/
+      adapter: statuspage
+      endpoint: https://status.huntress.io/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: ibm-cloud
+      name: IBM Cloud
+      category: Cloud
+      page_url: https://cloud.ibm.com/status
+      adapter: manual
+      tier: 1
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: ironscales
+      name: IRONSCALES
+      category: Security
+      page_url: https://status.ironscales.com/
+      adapter: statuspage
+      endpoint: https://status.ironscales.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: irs
+      name: IRS
+      category: Government
+      page_url: https://www.irs.gov
+      adapter: manual
+      tier: 4
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: it-glue
+      name: IT Glue
+      category: Documentation
+      page_url: No public status page (page retired)
+      adapter: manual
+      tier: 4
+      enabled: false
+      notes: No dedicated status page
+    - id: intuit-quickbooks
+      name: Intuit Quickbooks
+      category: Financial SaaS
+      page_url: https://quickbooks.intuit.com/status
+      adapter: manual
+      tier: 2
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: ivanti
+      name: Ivanti
+      category: Patching
+      page_url: https://status.ivanticloud.com/
+      adapter: statuspage
+      endpoint: https://status.ivanticloud.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: jamf
+      name: Jamf
+      category: MDM
+      page_url: https://status.jamf.com/
+      adapter: statuspage
+      endpoint: https://status.jamf.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: jumpcloud
+      name: JumpCloud
+      category: Identity
+      page_url: https://status.jumpcloud.com/
+      adapter: statuspage
+      endpoint: https://status.jumpcloud.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: kandji
+      name: Kandji
+      category: MDM
+      page_url: https://status.kandji.io/
+      adapter: statuspage
+      endpoint: https://status.kandji.io/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: kaseya
+      name: Kaseya
+      category: SaaS
+      page_url: https://status.kaseya.com/
+      adapter: statuspage
+      endpoint: https://status.kaseya.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: keeper-security
+      name: Keeper Security
+      category: Identity
+      page_url: https://keepersecurity.statuspage.io/
+      adapter: statuspage
+      endpoint: https://keepersecurity.statuspage.io/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: keepit
+      name: Keepit
+      category: Backup
+      page_url: https://status.keepit.com/
+      adapter: statuspage
+      endpoint: https://status.keepit.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: knowbe4
+      name: KnowBe4
+      category: Security
+      page_url: https://status.knowbe4.com/
+      adapter: statuspage
+      endpoint: https://status.knowbe4.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: lastpass
+      name: LastPass
+      category: Identity
+      page_url: https://status.lastpass.com/
+      adapter: statuspage
+      endpoint: https://status.lastpass.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: lets-encrypt
+      name: Let's Encrypt
+      category: Domains/DNS
+      page_url: https://letsencrypt.status.io/
+      adapter: statusio
+      endpoint: https://api.status.io/1.0/status/55957a99e800baa4470002da
+      tier: 4
+      enabled: true
+    - id: level
+      name: Level
+      category: RMM
+      page_url: https://status.level.io/en
+      adapter: statuspage
+      endpoint: https://status.level.io/en/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: linode-akamai
+      name: Linode (Akamai)
+      category: Cloud
+      page_url: https://status.linode.com/
+      adapter: statuspage
+      endpoint: https://status.linode.com/api/v2/summary.json
+      tier: 1
+      enabled: true
+    - id: liongard
+      name: Liongard
+      category: Network Monitoring
+      page_url: https://status.liongard.com/
+      adapter: statuspage
+      endpoint: https://status.liongard.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: lumen
+      name: Lumen
+      category: Telecom
+      page_url: https://lumen.statuspage.io/
+      adapter: statuspage
+      endpoint: https://lumen.statuspage.io/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: mspbots
+      name: MSPbots
+      category: MSP Tools
+      page_url: https://status.mspbots.ai/
+      adapter: statuspage
+      endpoint: https://status.mspbots.ai/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: mailchimp
+      name: Mailchimp
+      category: Email
+      page_url: https://status.mailchimp.com/
+      adapter: statuspage
+      endpoint: https://status.mailchimp.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: mailgun
+      name: Mailgun
+      category: Email
+      page_url: https://status.mailgun.com/
+      adapter: statuspage
+      endpoint: https://status.mailgun.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: mailprotector
+      name: Mailprotector
+      category: Email
+      page_url: https://status.mailprotector.com/
+      adapter: statuspage
+      endpoint: https://status.mailprotector.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: manageengine
+      name: ManageEngine
+      category: RMM
+      page_url: https://status.manageengine.com/
+      adapter: statuspage
+      endpoint: https://status.manageengine.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: meta
+      name: Meta
+      category: SaaS
+      page_url: https://metastatuspage.com/
+      adapter: manual
+      tier: 3
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: microsoft-365
+      name: Microsoft 365
+      category: SaaS
+      page_url: https://status.cloud.microsoft/
+      adapter: manual
+      tier: 3
+      enabled: false
+      notes: Microsoft 365 requires Graph tenant auth - out of scope for v1
+    - id: microsoft-azure
+      name: Microsoft Azure
+      category: Cloud
+      page_url: https://azure.status.microsoft/en-us/status
+      adapter: rss
+      endpoint: https://azurestatuscdn.azureedge.net/en-us/status/feed/
+      tier: 1
+      enabled: true
+    - id: microsoft-azure-devops
+      name: Microsoft Azure DevOps
+      category: SaaS
+      page_url: https://status.dev.azure.com/
+      adapter: statuspage
+      endpoint: https://status.dev.azure.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: microsoft-power-platform
+      name: Microsoft Power Platform
+      category: SaaS
+      page_url: https://admin.powerplatform.microsoft.com/status
+      adapter: manual
+      tier: 3
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: mimecast
+      name: Mimecast
+      category: Security
+      page_url: https://status.mimecast.com
+      adapter: statusio
+      endpoint: https://api.status.io/1.0/status/5d849b1c02e65b3ec45369d4
+      tier: 2
+      enabled: true
+    - id: miro
+      name: Miro
+      category: SaaS
+      page_url: https://status.miro.com/
+      adapter: statuspage
+      endpoint: https://status.miro.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: mistral
+      name: Mistral
+      category: AI/ML
+      page_url: https://status.mistral.ai/
+      adapter: statuspage
+      endpoint: https://status.mistral.ai/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: mondaycom
+      name: Monday.com
+      category: SaaS
+      page_url: https://status.monday.com/
+      adapter: statuspage
+      endpoint: https://status.monday.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: mongodb
+      name: MongoDB
+      category: DevOps
+      page_url: https://status.mongodb.com/
+      adapter: statuspage
+      endpoint: https://status.mongodb.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: mosyle
+      name: Mosyle
+      category: MDM
+      page_url: https://status.mosyle.com/
+      adapter: statuspage
+      endpoint: https://status.mosyle.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: nable
+      name: N-able
+      category: RMM
+      page_url: https://status.n-able.com/
+      adapter: statuspage
+      endpoint: https://status.n-able.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: namecheap
+      name: Namecheap
+      category: Domains/DNS
+      page_url: https://www.namecheap.com/status-updates/
+      adapter: manual
+      tier: 4
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: netsuite
+      name: NetSuite
+      category: Financial SaaS
+      page_url: https://status.netsuite.com/
+      adapter: statuspage
+      endpoint: https://status.netsuite.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: netlify
+      name: Netlify
+      category: Cloud
+      page_url: https://www.netlifystatus.com/
+      adapter: statuspage
+      endpoint: https://www.netlifystatus.com/api/v2/summary.json
+      tier: 1
+      enabled: true
+    - id: netskope
+      name: Netskope
+      category: SASE
+      page_url: https://trust.netskope.com/
+      adapter: manual
+      tier: 2
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: new-relic
+      name: New Relic
+      category: SaaS
+      page_url: https://status.newrelic.com/
+      adapter: statuspage
+      endpoint: https://status.newrelic.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: nextiva
+      name: Nextiva
+      category: Telephony
+      page_url: https://status.nextiva.com/
+      adapter: statuspage
+      endpoint: https://status.nextiva.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: ninjaone
+      name: NinjaOne
+      category: RMM
+      page_url: https://status.ninjaone.com/
+      adapter: statuspage
+      endpoint: https://status.ninjaone.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: notion
+      name: Notion
+      category: SaaS
+      page_url: https://www.notion-status.com/
+      adapter: statuspage
+      endpoint: https://www.notion-status.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: nutanix
+      name: Nutanix
+      category: Virtualization
+      page_url: https://status.nutanix.com/
+      adapter: statuspage
+      endpoint: https://status.nutanix.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: ovhcloud
+      name: OVHcloud
+      category: Cloud
+      page_url: https://www.status-ovhcloud.com/
+      adapter: manual
+      tier: 1
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: okta
+      name: Okta
+      category: Security
+      page_url: https://status.okta.com/
+      adapter: statuspage
+      endpoint: https://status.okta.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: openai
+      name: OpenAI
+      category: AI/ML
+      page_url: https://status.openai.com/
+      adapter: statuspage
+      endpoint: https://status.openai.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: opentext-webroot--carbonite
+      name: OpenText (Webroot / Carbonite)
+      category: Security
+      page_url: https://status.opentext.com/
+      adapter: statuspage
+      endpoint: https://status.opentext.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: oracle-cloud
+      name: Oracle Cloud
+      category: Cloud
+      page_url: https://ocistatus.oraclecloud.com
+      adapter: statuspage
+      endpoint: https://ocistatus.oraclecloud.com/api/v2/summary.json
+      tier: 1
+      enabled: true
+    - id: pdq
+      name: PDQ
+      category: Patching
+      page_url: https://status.pdq.com/
+      adapter: statuspage
+      endpoint: https://status.pdq.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: pagerduty
+      name: PagerDuty
+      category: Monitoring
+      page_url: https://status.pagerduty.com/
+      adapter: statuspage
+      endpoint: https://status.pagerduty.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: palo-alto-networks
+      name: Palo Alto Networks
+      category: Security
+      page_url: https://status.paloaltonetworks.com/
+      adapter: statuspage
+      endpoint: https://status.paloaltonetworks.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: papercut
+      name: PaperCut
+      category: Printing
+      page_url: https://status.papercut.com/
+      adapter: statuspage
+      endpoint: https://status.papercut.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: pax8
+      name: Pax8
+      category: Distribution
+      page_url: https://status.pax8.com/
+      adapter: statuspage
+      endpoint: https://status.pax8.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: paypal
+      name: PayPal
+      category: Financial SaaS
+      page_url: https://www.paypal-status.com/product/production
+      adapter: statuspage
+      endpoint: https://www.paypal-status.com/product/production/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: perplexity
+      name: Perplexity
+      category: AI/ML
+      page_url: https://status.perplexity.com/
+      adapter: statuspage
+      endpoint: https://status.perplexity.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: ping-identity
+      name: Ping Identity
+      category: Identity
+      page_url: https://status.pingidentity.com/
+      adapter: statuspage
+      endpoint: https://status.pingidentity.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: pingdom
+      name: Pingdom
+      category: Monitoring
+      page_url: https://status.pingdom.com/
+      adapter: sorryapp
+      endpoint: https://status.pingdom.com/api/v1/status
+      tier: 4
+      enabled: true
+    - id: plaid
+      name: Plaid
+      category: Financial SaaS
+      page_url: https://status.plaid.com/
+      adapter: statuspage
+      endpoint: https://status.plaid.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: postmark
+      name: Postmark
+      category: Email
+      page_url: https://status.postmarkapp.com/
+      adapter: sorryapp
+      endpoint: https://status.postmarkapp.com/api/v1/status
+      tier: 4
+      enabled: true
+    - id: printix
+      name: Printix
+      category: Printing
+      page_url: https://status.printix.net/
+      adapter: statuspage
+      endpoint: https://status.printix.net/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: proofpoint
+      name: Proofpoint
+      category: Security
+      page_url: https://status.proofpointsa.com/
+      adapter: statuspage
+      endpoint: https://status.proofpointsa.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: pypi
+      name: PyPI
+      category: DevOps
+      page_url: https://status.python.org/
+      adapter: statuspage
+      endpoint: https://status.python.org/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: quad9
+      name: Quad9
+      category: Security
+      page_url: https://uptime.quad9.net/
+      adapter: betterstack
+      endpoint: https://uptime.quad9.net/index.json
+      tier: 2
+      enabled: true
+    - id: qualys
+      name: Qualys
+      category: Security
+      page_url: https://status.qualys.com/
+      adapter: statuspage
+      endpoint: https://status.qualys.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: ramp
+      name: Ramp
+      category: Financial SaaS
+      page_url: No dedicated status page available
+      adapter: manual
+      tier: 2
+      enabled: false
+      notes: No dedicated status page
+    - id: rapid7
+      name: Rapid7
+      category: Security
+      page_url: https://status.rapid7.com/
+      adapter: statuspage
+      endpoint: https://status.rapid7.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: redis
+      name: Redis
+      category: DevOps
+      page_url: https://status.redis.io/
+      adapter: statuspage
+      endpoint: https://status.redis.io/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: rewst
+      name: Rewst
+      category: Automation
+      page_url: https://status.rewst.io/
+      adapter: statuspage
+      endpoint: https://status.rewst.io/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: ringcentral
+      name: RingCentral
+      category: Telephony
+      page_url: https://status.ringcentral.com/
+      adapter: statuspage
+      endpoint: https://status.ringcentral.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: rippling
+      name: Rippling
+      category: Financial SaaS
+      page_url: https://status.rippling.com/
+      adapter: statuspage
+      endpoint: https://status.rippling.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: ssa
+      name: SSA
+      category: Government
+      page_url: https://ssa.statuspage.io
+      adapter: statuspage
+      endpoint: https://ssa.statuspage.io/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: saas-alerts
+      name: SaaS Alerts
+      category: Security
+      page_url: https://saasalerts.statuspage.io/
+      adapter: statuspage
+      endpoint: https://saasalerts.statuspage.io/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: salesforce
+      name: Salesforce
+      category: SaaS
+      page_url: https://status.salesforce.com/
+      adapter: salesforce
+      endpoint: https://api.status.salesforce.com/v1/incidents
+      tier: 3
+      enabled: true
+    - id: scalepad
+      name: Scalepad
+      category: SaaS
+      page_url: https://status.scalepad.com
+      adapter: statuspage
+      endpoint: https://status.scalepad.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: sendgrid
+      name: SendGrid
+      category: Email
+      page_url: https://status.twilio.com/
+      adapter: manual
+      tier: 4
+      enabled: true
+      notes: Uses Twilio status page (SendGrid is under Twilio)
+    - id: sentinelone
+      name: SentinelOne
+      category: Security
+      page_url: https://status.sentinelone.com/
+      adapter: statuspage
+      endpoint: https://status.sentinelone.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: sentry
+      name: Sentry
+      category: Monitoring
+      page_url: https://status.sentry.io/
+      adapter: statuspage
+      endpoint: https://status.sentry.io/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: servicenow
+      name: ServiceNow
+      category: SaaS
+      page_url: https://trust.servicenow.com/
+      adapter: manual
+      tier: 3
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: servosity
+      name: Servosity
+      category: Backup
+      page_url: https://status.servosity.com/
+      adapter: statuspage
+      endpoint: https://status.servosity.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: sharefile
+      name: ShareFile
+      category: SaaS
+      page_url: https://status.sharefile.com/
+      adapter: statuspage
+      endpoint: https://status.sharefile.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: shopify
+      name: Shopify
+      category: SaaS
+      page_url: https://www.shopifystatus.com/
+      adapter: statuspage
+      endpoint: https://www.shopifystatus.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: slack
+      name: Slack
+      category: SaaS
+      page_url: https://slack-status.com/
+      adapter: slack
+      endpoint: https://slack-status.com/api/v2.0.0/current
+      tier: 3
+      enabled: true
+    - id: smartsheet
+      name: Smartsheet
+      category: SaaS
+      page_url: https://status.smartsheet.com/
+      adapter: statuspage
+      endpoint: https://status.smartsheet.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: snowflake
+      name: Snowflake
+      category: DevOps
+      page_url: https://status.snowflake.com/
+      adapter: statuspage
+      endpoint: https://status.snowflake.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: sonicwall
+      name: SonicWall
+      category: Security
+      page_url: https://status.sonicwall.com/
+      adapter: statuspage
+      endpoint: https://status.sonicwall.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: sophos
+      name: Sophos
+      category: Security
+      page_url: https://status.sophos.com/
+      adapter: statuspage
+      endpoint: https://status.sophos.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: spectrum
+      name: Spectrum
+      category: Cable/ISP
+      page_url: https://spectrum.statuspage.io
+      adapter: statuspage
+      endpoint: https://spectrum.statuspage.io/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: splashtop
+      name: Splashtop
+      category: Remote Access
+      page_url: https://status.splashtop.com/
+      adapter: statuspage
+      endpoint: https://status.splashtop.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: square
+      name: Square
+      category: Financial SaaS
+      page_url: https://www.issquareup.com/
+      adapter: manual
+      tier: 2
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: statuscake
+      name: StatusCake
+      category: Monitoring
+      page_url: https://status.statuscake.com/
+      adapter: statuspage
+      endpoint: https://status.statuscake.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: stripe
+      name: Stripe
+      category: SaaS
+      page_url: https://status.stripe.com/
+      adapter: statuspage
+      endpoint: https://status.stripe.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: syncro
+      name: Syncro
+      category: RMM
+      page_url: https://www.syncrostatus.com/
+      adapter: statuspage
+      endpoint: https://www.syncrostatus.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: tmobile
+      name: T-Mobile
+      category: Telecom
+      page_url: https://www.t-mobile.com/support/status
+      adapter: manual
+      tier: 3
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: tailscale
+      name: Tailscale
+      category: Network
+      page_url: https://status.tailscale.com/
+      adapter: statuspage
+      endpoint: https://status.tailscale.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: talkdesk
+      name: Talkdesk
+      category: Telephony
+      page_url: https://status.talkdesk.com/
+      adapter: statuspage
+      endpoint: https://status.talkdesk.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: teamviewer
+      name: TeamViewer
+      category: Remote Access
+      page_url: https://status.teamviewer.com/
+      adapter: statuspage
+      endpoint: https://status.teamviewer.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: telnyx
+      name: Telnyx
+      category: Telephony
+      page_url: https://status.telnyx.com/
+      adapter: statuspage
+      endpoint: https://status.telnyx.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: tenable
+      name: Tenable
+      category: Security
+      page_url: https://status.tenable.com/
+      adapter: statuspage
+      endpoint: https://status.tenable.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: thousandeyes
+      name: ThousandEyes
+      category: Network Monitoring
+      page_url: https://status.thousandeyes.com/
+      adapter: statuspage
+      endpoint: https://status.thousandeyes.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: threatdown-malwarebytes
+      name: ThreatDown (Malwarebytes)
+      category: Security
+      page_url: https://status.threatdown.com/
+      adapter: statuspage
+      endpoint: https://status.threatdown.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: threatlocker
+      name: ThreatLocker
+      category: Security
+      page_url: https://threatlocker.statuspage.io/
+      adapter: statuspage
+      endpoint: https://threatlocker.statuspage.io/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: todyl
+      name: Todyl
+      category: SASE
+      page_url: https://status.todyl.com
+      adapter: statuspage
+      endpoint: https://status.todyl.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: trend-micro
+      name: Trend Micro
+      category: Security
+      page_url: https://status.trendmicro.com/en-US/
+      adapter: statuspage
+      endpoint: https://status.trendmicro.com/en-US/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: twilio
+      name: Twilio
+      category: SaaS
+      page_url: https://status.twilio.com/
+      adapter: statuspage
+      endpoint: https://status.twilio.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: twingate
+      name: Twingate
+      category: Network
+      page_url: https://status.twingate.com/
+      adapter: statuspage
+      endpoint: https://status.twingate.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: ubiquiti--unifi
+      name: Ubiquiti / UniFi
+      category: Network
+      page_url: https://status.ui.com/
+      adapter: statuspage
+      endpoint: https://status.ui.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: uptimerobot
+      name: UptimeRobot
+      category: Monitoring
+      page_url: https://status.uptimerobot.com/
+      adapter: statuspage
+      endpoint: https://status.uptimerobot.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: vipre
+      name: VIPRE
+      category: Security
+      page_url: https://status.vipre.com/
+      adapter: statuspage
+      endpoint: https://status.vipre.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: vade
+      name: Vade
+      category: Security
+      page_url: https://status.vadesecure.com/
+      adapter: statuspage
+      endpoint: https://status.vadesecure.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: vanta
+      name: Vanta
+      category: Compliance
+      page_url: https://status.vanta.com/
+      adapter: statuspage
+      endpoint: https://status.vanta.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: veeam-software
+      name: Veeam Software
+      category: Backup
+      page_url: https://vdcstatus.veeam.com/
+      adapter: statuspage
+      endpoint: https://vdcstatus.veeam.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: vercel
+      name: Vercel
+      category: Cloud
+      page_url: https://www.vercel-status.com/
+      adapter: statuspage
+      endpoint: https://www.vercel-status.com/api/v2/summary.json
+      tier: 1
+      enabled: true
+    - id: verizon
+      name: Verizon
+      category: Telecom
+      page_url: https://verizon.statuspage.io
+      adapter: statuspage
+      endpoint: https://verizon.statuspage.io/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: verkada
+      name: Verkada
+      category: Network
+      page_url: https://status.verkada.com/
+      adapter: statuspage
+      endpoint: https://status.verkada.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: vultr
+      name: Vultr
+      category: Cloud
+      page_url: https://status.vultr.com/
+      adapter: statuspage
+      endpoint: https://status.vultr.com/api/v2/summary.json
+      tier: 1
+      enabled: true
+    - id: wasabi
+      name: Wasabi
+      category: Backup
+      page_url: https://status.wasabi.com/
+      adapter: statuspage
+      endpoint: https://status.wasabi.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: watchguard
+      name: WatchGuard
+      category: Security
+      page_url: https://status.watchguard.com/
+      adapter: statuspage
+      endpoint: https://status.watchguard.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: wave
+      name: Wave
+      category: Financial SaaS
+      page_url: https://status.wave.com/
+      adapter: statuspage
+      endpoint: https://status.wave.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: windows-release-health
+      name: Windows Release Health
+      category: SaaS
+      page_url: https://learn.microsoft.com/en-us/windows/release-health/
+      adapter: manual
+      tier: 3
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: workos
+      name: WorkOS
+      category: Identity
+      page_url: https://status.workos.com/
+      adapter: statuspage
+      endpoint: https://status.workos.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+    - id: xero
+      name: Xero
+      category: SaaS
+      page_url: https://status.xero.com/
+      adapter: statuspage
+      endpoint: https://status.xero.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: xfinity
+      name: Xfinity
+      category: Cable/ISP
+      page_url: https://www.xfinity.com/support/status
+      adapter: manual
+      tier: 3
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: zendesk
+      name: Zendesk
+      category: SaaS
+      page_url: https://status.zendesk.com
+      adapter: statuspage
+      endpoint: https://status.zendesk.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: zerotier
+      name: ZeroTier
+      category: Network
+      page_url: https://status.zerotier.com/
+      adapter: statuspage
+      endpoint: https://status.zerotier.com/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: zoho
+      name: Zoho
+      category: SaaS
+      page_url: https://us.zohostatus.com/
+      adapter: statuspage
+      endpoint: https://us.zohostatus.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: zoom
+      name: Zoom
+      category: SaaS
+      page_url: https://www.zoomstatus.com/
+      adapter: statuspage
+      endpoint: https://www.zoomstatus.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: zscaler
+      name: Zscaler
+      category: SASE
+      page_url: https://trust.zscaler.com/
+      adapter: manual
+      tier: 2
+      enabled: true
+      notes: Unknown status page platform - review manually
+    - id: npm
+      name: npm
+      category: DevOps
+      page_url: https://status.npmjs.org/
+      adapter: statuspage
+      endpoint: https://status.npmjs.org/api/v2/summary.json
+      tier: 4
+      enabled: true
+    - id: xai
+      name: xAI
+      category: AI/ML
+      page_url: https://status.x.ai/
+      adapter: statuspage
+      endpoint: https://status.x.ai/api/v2/summary.json
+      tier: 2
+      enabled: true
