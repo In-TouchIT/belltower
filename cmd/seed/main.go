@@ -69,6 +69,11 @@ func determineAdapter(name, url string) (adapter, endpoint, notes string) {
 		return "statuspage", url+"/api/v2/summary.json", ""
 	}
 
+	// Special case: Oracle Cloud uses a custom React app with RSS feed, not StatusPage
+	if lowerName == "oracle cloud" || strings.Contains(strings.ToLower(url), "ocistatus") {
+		return "rss", "https://ocistatus.oraclecloud.com/api/v2/incident-summary.rss", ""
+	}
+
 	// Special case handling based on provider name
 	// Microsoft 365 - requires Graph tenant auth, out of scope for v1
 	if lowerName == "microsoft 365" || lowerName == "m365" {

@@ -3,6 +3,7 @@ package api
 import (
 	"compress/gzip"
 	"context"
+	"database/sql"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -365,8 +366,21 @@ func (s *Server) handleIncidents(w http.ResponseWriter, r *http.Request) {
 		
 		for rows.Next() {
 			var inc store.Incident
-			rows.Scan(&inc.ProviderID, &inc.ExtID, &inc.Title, &inc.Impact, &inc.Status, &inc.StartedAt, &inc.ResolvedAt, &inc.URL, &inc.Body, &inc.RawJSON, &inc.FirstSeen, &inc.LastSeen)
-			incidents = append(incidents, inc)
+			var rawJSON sql.NullString
+			var resolvedAt sql.NullString
+			if err := rows.Scan(
+				&inc.ProviderID, &inc.ExtID, &inc.Title, &inc.Impact, &inc.Status,
+				&inc.StartedAt, &resolvedAt, &inc.URL, &inc.Body,
+				&rawJSON, &inc.FirstSeen, &inc.LastSeen,
+			); err == nil {
+				if resolvedAt.Valid {
+					inc.ResolvedAt = resolvedAt.String
+				}
+				if rawJSON.Valid {
+					inc.RawJSON = rawJSON.String
+				}
+				incidents = append(incidents, inc)
+			}
 		}
 	}
 

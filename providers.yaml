@@ -1139,8 +1139,8 @@ providers:
       name: Oracle Cloud
       category: Cloud
       page_url: https://ocistatus.oraclecloud.com
-      adapter: statuspage
-      endpoint: https://ocistatus.oraclecloud.com/api/v2/summary.json
+      adapter: rss
+      endpoint: https://ocistatus.oraclecloud.com/api/v2/incident-summary.rss
       tier: 1
       enabled: true
     - id: pdq

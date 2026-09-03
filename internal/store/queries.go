@@ -105,6 +105,14 @@ func (d *DB) UpsertIncident(i Incident) error {
 		i.FirstSeen = now
 	}
 
+	// Store NULL for resolved_at if it's empty or zero time
+	var resolvedAt interface{}
+	if i.ResolvedAt == "" || i.ResolvedAt == "0001-01-01T00:00:00Z" {
+		resolvedAt = nil
+	} else {
+		resolvedAt = i.ResolvedAt
+	}
+
 	_, err := d.Exec(`
 		INSERT INTO incidents (provider_id, ext_id, title, impact, status, started_at, resolved_at, url, body, raw_json, first_seen, last_seen)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -113,12 +121,16 @@ func (d *DB) UpsertIncident(i Incident) error {
 			impact = excluded.impact,
 			status = excluded.status,
 			started_at = excluded.started_at,
-			resolved_at = COALESCE(excluded.resolved_at, excluded.resolved_at),
+			resolved_at = CASE 
+				WHEN excluded.resolved_at IS NOT NULL AND excluded.resolved_at != '0001-01-01T00:00:00Z' 
+				THEN excluded.resolved_at 
+				ELSE incidents.resolved_at 
+			END,
 			url = excluded.url,
 			body = excluded.body,
 			raw_json = excluded.raw_json,
 			last_seen = excluded.last_seen
-	`, i.ProviderID, i.ExtID, i.Title, i.Impact, i.Status, i.StartedAt, i.ResolvedAt, i.URL, i.Body, i.RawJSON, i.FirstSeen, i.LastSeen)
+	`, i.ProviderID, i.ExtID, i.Title, i.Impact, i.Status, i.StartedAt, resolvedAt, i.URL, i.Body, i.RawJSON, i.FirstSeen, i.LastSeen)
 	if err != nil {
 		return fmt.Errorf("failed to upsert incident: %w", err)
 	}
@@ -197,7 +209,8 @@ func (d *DB) SearchIncidents(query string, limit int) ([]Incident, error) {
 func (d *DB) GetOpenIncidents() ([]Incident, error) {
 	rows, err := d.Query(`
 		SELECT provider_id, ext_id, title, impact, status, started_at, resolved_at, url, body, raw_json, first_seen, last_seen
-		FROM incidents WHERE resolved_at IS NULL OR resolved_at = ''
+		FROM incidents 
+		WHERE resolved_at IS NULL OR resolved_at = '' OR resolved_at = '0001-01-01T00:00:00Z'
 		ORDER BY started_at DESC
 	`)
 	if err != nil {
@@ -272,29 +285,29 @@ func boolToInt(b bool) int {
 }
 
 // scanIncidents scans rows into incidents
+// This function handles the standard incident columns: 12 fields
 func scanIncidents(rows *sql.Rows) ([]Incident, error) {
 	var incidents []Incident
 	for rows.Next() {
 		var i Incident
-		var nullString sql.NullString
-		var httpCode sql.NullInt64
-		var latency sql.NullInt64
+		var rawJSON sql.NullString
+		var resolvedAt sql.NullString
 
-		if err := rows.Scan(
+		err := rows.Scan(
 			&i.ProviderID, &i.ExtID, &i.Title, &i.Impact, &i.Status,
-			&i.StartedAt, &i.ResolvedAt, &i.URL, &i.Body,
-			&nullString, &httpCode, &latency,
-		); err != nil {
+			&i.StartedAt, &resolvedAt, &i.URL, &i.Body,
+			&rawJSON, &i.FirstSeen, &i.LastSeen,
+		)
+		if err != nil {
 			return nil, fmt.Errorf("failed to scan incident: %w", err)
 		}
-		if nullString.Valid {
-			i.RawJSON = nullString.String
+		if resolvedAt.Valid {
+			i.ResolvedAt = resolvedAt.String
+		} else {
+			i.ResolvedAt = ""
 		}
-		if httpCode.Valid {
-			_ = httpCode.Int64 // ignore, not used here
-		}
-		if latency.Valid {
-			_ = latency.Int64 // ignore, not used here
+		if rawJSON.Valid {
+			i.RawJSON = rawJSON.String
 		}
 		incidents = append(incidents, i)
 	}
