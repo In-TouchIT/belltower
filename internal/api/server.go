@@ -546,6 +546,9 @@ const OpenAPISpec = `{
     "version": "1.0.0",
     "description": "API for monitoring vendor status pages"
   },
+  "servers": [
+    {"url": "http://192.168.111.122:8088"}
+  ],
   "paths": {
     "/api/v1/snapshot": {
       "get": {
