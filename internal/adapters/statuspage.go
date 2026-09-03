@@ -261,6 +261,7 @@ func LoadProvidersFromYAML(path string) ([]ProviderInfo, error) {
 			PageURL:  p.PageURL,
 			Adapter:  p.Adapter,
 			Endpoint: p.Endpoint,
+			Tier:     p.Tier,
 		})
 	}
 

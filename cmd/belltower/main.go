@@ -86,10 +86,11 @@ func runServer(cmd *cobra.Command, args []string) {
 			PageURL:  p.PageURL,
 			Adapter:  p.Adapter,
 			Endpoint: p.Endpoint,
+			Tier:     p.Tier,
 			Enabled:  true,
 		}
-		if err := db.UpsertProvider(provider); err != nil {
-			log.Printf("Warning: failed to upsert provider %s: %v", p.ID, err)
+		if saveErr := db.UpsertProvider(provider); saveErr != nil {
+			log.Printf("Warning: failed to upsert provider %s: %v", p.ID, saveErr)
 		}
 	}
 

@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="60">
     <title>Belltower Status Dashboard</title>
     <script src="/static/htmx.min.js"></script>
     <style>
@@ -18,6 +17,7 @@
             --blue: #2979ff;
             --gray: #616161;
             --border: #333;
+            --manual-bg: #2a1a1a;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -27,8 +27,9 @@
             padding: 20px;
         }
         h1 {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             margin-bottom: 5px;
+            color: var(--blue);
         }
         .subtitle {
             color: var(--text-secondary);
@@ -38,33 +39,36 @@
         .stats-bar {
             display: flex;
             gap: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             flex-wrap: wrap;
         }
         .stat-badge {
             background: var(--card-bg);
             border: 1px solid var(--border);
-            padding: 8px 16px;
+            padding: 10px 16px;
             border-radius: 4px;
             font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         .stat-badge.healthy { border-color: var(--green); color: var(--green); }
         .stat-badge.degraded { border-color: var(--amber); color: var(--amber); }
         .stat-badge.outage { border-color: var(--red); color: var(--red); }
         .stat-badge.unknown { border-color: var(--gray); color: var(--text-secondary); }
-        .category-section {
-            margin-bottom: 30px;
-        }
+        .stat-badge .count { font-size: 1.2rem; font-weight: bold; }
         .category-title {
             font-size: 1.2rem;
-            margin-bottom: 10px;
+            margin: 20px 0 10px 0;
             padding-bottom: 5px;
             border-bottom: 1px solid var(--border);
+            color: var(--blue);
         }
         .providers-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 12px;
+            margin-bottom: 10px;
         }
         .provider-card {
             background: var(--card-bg);
@@ -72,19 +76,25 @@
             border-radius: 6px;
             padding: 15px;
             transition: border-color 0.2s;
+            cursor: pointer;
+        }
+        .provider-card:hover {
+            border-color: var(--blue);
         }
         .provider-card.operational { border-left: 3px solid var(--green); }
         .provider-card.degraded { border-left: 3px solid var(--amber); }
-        .provider-card.outage { border-left: 3px solid var(--red); }
+        .provider-card.outage { border-left: 3px solid var(--red); background: rgba(204, 0, 0, 0.05); }
         .provider-card.unknown { border-left: 3px solid var(--gray); }
+        .provider-card.maintenance { border-left: 3px solid var(--blue); }
+        .provider-card.manual { background: var(--manual-bg); border-left: 3px solid var(--gray); }
         .provider-name {
             font-weight: 600;
             font-size: 1rem;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
         }
         .provider-category {
             color: var(--text-secondary);
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
             margin-bottom: 8px;
         }
@@ -92,67 +102,106 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
         }
         .status-dot {
             width: 10px;
             height: 10px;
             border-radius: 50%;
             display: inline-block;
+            flex-shrink: 0;
         }
         .status-dot.operational { background: var(--green); }
         .status-dot.degraded { background: var(--amber); }
         .status-dot.outage { background: var(--red); }
         .status-dot.unknown { background: var(--gray); }
         .status-dot.maintenance { background: var(--blue); }
-        .incidents-list {
-            margin-top: 10px;
-            font-size: 0.8rem;
+        .provider-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
         }
-        .incident-item {
-            background: rgba(204, 0, 0, 0.1);
+        .tier-badge {
+            background: rgba(41, 121, 255, 0.2);
+            color: var(--blue);
+            padding: 2px 6px;
             border-radius: 3px;
-            padding: 5px 8px;
-            margin-top: 5px;
         }
         .stale-badge {
             background: rgba(255, 171, 0, 0.2);
             color: var(--amber);
             padding: 2px 6px;
             border-radius: 3px;
-            font-size: 0.7rem;
-            margin-left: auto;
         }
-        .provider-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .manual-section {
-            background: rgba(97, 97, 97, 0.1);
-            border: 1px dashed var(--gray);
+        .incidents-section {
+            margin-top: 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
             border-radius: 6px;
             padding: 15px;
-            margin-top: 20px;
         }
-        .refresh-hint {
+        .incident-item {
+            background: rgba(204, 0, 0, 0.1);
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 8px;
+            border-left: 2px solid var(--red);
+        }
+        .incident-item.minor { border-left-color: var(--amber); background: rgba(255, 171, 0, 0.1); }
+        .incident-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .incident-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .manual-section {
+            margin-top: 30px;
+            padding: 15px;
+            background: var(--manual-bg);
+            border: 1px dashed var(--gray);
+            border-radius: 6px;
+        }
+        .manual-title {
+            color: var(--amber);
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+        .manual-provider {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .manual-provider:last-child { border-bottom: none; }
+        .manual-link {
+            color: var(--blue);
+            text-decoration: none;
+        }
+        .manual-link:hover { text-decoration: underline; }
+        .refresh-info {
             color: var(--text-secondary);
             font-size: 0.75rem;
-            margin-top: 10px;
+            margin-top: 20px;
         }
+        .loading { text-align: center; padding: 40px; color: var(--text-secondary); }
     </style>
 </head>
 <body>
-    <div id="dashboard">
+    <div id="app">
         <h1>Belltower Status Dashboard</h1>
-        <div class="subtitle">Monitoring vendor status pages — auto-refresh every 60s</div>
+        <div class="subtitle">Monitoring 219 vendor status pages — auto-refresh every 60s</div>
         
-        <div class="stats-bar" id="stats">
-            <!-- Stats will be loaded here -->
+        <div class="stats-bar" id="stats-bar">
+            <div class="loading">Loading overview...</div>
         </div>
 
-        <div id="categories">
-            <!-- Categories will be loaded here -->
+        <div id="dashboard-content">
+            <div class="loading">Loading provider statuses...</div>
         </div>
     </div>
 
@@ -166,21 +215,27 @@
                 
                 // Render stats
                 const stats = data.stats;
-                const statsEl = document.getElementById('stats');
+                const statsEl = document.getElementById('stats-bar');
                 statsEl.innerHTML = `
-                    <div class="stat-badge healthy">Operational: ${stats.operational}</div>
-                    <div class="stat-badge.degraded">Degraded: ${stats.degraded}</div>
-                    <div class="stat-badge.outage">Outages: ${stats.outages}</div>
-                    <div class="stat-badge unknown">Unknown: ${stats.unknown}</div>
-                    <div class="stat-badge">Maintenance: ${stats.maintenance}</div>
-                    <div class="stat-badge">Unmonitored: ${stats.unmonitored}</div>
-                    <div class="stat-badge">Open Incidents: ${stats.open_incidents}</div>
-                    <div class="stat-badge">Last Updated: ${new Date(data.built_at).toLocaleTimeString()}</div>
+                    <div class="stat-badge healthy"><span class="count">${stats.operational}</span> Operational</div>
+                    <div class="stat-badge degraded"><span class="count">${stats.degraded}</span> Degraded</div>
+                    <div class="stat-badge outage"><span class="count">${stats.outages}</span> Outages</div>
+                    <div class="stat-badge"><span class="count">${stats.maintenance}</span> Maintenance</div>
+                    <div class="stat-badge unknown"><span class="count">${stats.unknown}</span> Unknown</div>
+                    <div class="stat-badge"><span class="count">${stats.unmonitored}</span> Manual Check</div>
+                    <div class="stat-badge"><span class="count">${stats.open_incidents}</span> Open Incidents</div>
+                    <div class="stat-badge"><span class="count">${stats.total_providers}</span> Total</div>
                 `;
                 
                 // Group providers by category
                 const categories = {};
+                const manualProviders = [];
+                
                 data.providers.forEach(p => {
+                    if (p.adapter === 'manual') {
+                        manualProviders.push(p);
+                        return;
+                    }
                     if (!categories[p.category]) categories[p.category] = [];
                     categories[p.category].push(p);
                 });
@@ -188,9 +243,10 @@
                 // Sort categories alphabetically
                 const sortedCats = Object.keys(categories).sort();
                 
-                const categoriesEl = document.getElementById('categories');
+                const contentEl = document.getElementById('dashboard-content');
                 let html = '';
                 
+                // Render categories
                 sortedCats.forEach(cat => {
                     const providers = categories[cat];
                     // Sort by tier then name
@@ -199,8 +255,20 @@
                         return a.name.localeCompare(b.name);
                     });
                     
+                    // Count statuses
+                    let up = 0, down = 0, unknown = 0;
+                    providers.forEach(p => {
+                        if (p.indicator === 'none' || (p.ok && p.indicator !== 'unknown')) up++;
+                        else if (p.indicator === 'minor' || p.indicator === 'major' || p.indicator === 'critical') down++;
+                        else unknown++;
+                    });
+                    
                     html += `<div class="category-section">
-                        <div class="category-title">${cat} (${providers.length})</div>
+                        <div class="category-title">${cat} (${providers.length}) 
+                            <span style="font-size:0.8rem;color:var(--text-secondary);">
+                                ${up} up, ${down} issues, ${unknown} unknown
+                            </span>
+                        </div>
                         <div class="providers-grid">`;
                     
                     providers.forEach(p => {
@@ -208,11 +276,7 @@
                         let statusText = 'Operational';
                         let statusDot = 'operational';
                         
-                        if (p.adapter === 'manual') {
-                            statusClass = 'unknown';
-                            statusText = 'Manual Check';
-                            statusDot = 'unknown';
-                        } else if (!p.ok) {
+                        if (!p.ok) {
                             if (p.indicator === 'minor' || p.indicator === 'degraded') {
                                 statusClass = 'degraded';
                                 statusText = 'Degraded';
@@ -222,7 +286,7 @@
                                 statusText = 'Outage';
                                 statusDot = 'outage';
                             } else if (p.indicator === 'maintenance') {
-                                statusClass = 'unknown';
+                                statusClass = 'maintenance';
                                 statusText = 'Maintenance';
                                 statusDot = 'maintenance';
                             } else {
@@ -232,17 +296,16 @@
                             }
                         }
                         
-                        html += `<div class="provider-card ${statusClass}">
-                            <div class="provider-row">
-                                <div>
-                                    <div class="provider-name">${p.name}</div>
-                                    <div class="provider-category">${p.category}</div>
-                                </div>
-                                <div class="stale-badge">Tier ${p.tier}</div>
-                            </div>
+                        html += `<div class="provider-card ${statusClass}" onclick="viewProvider('${p.name}')">
+                            <div class="provider-name">${p.name}</div>
+                            <div class="provider-category">${p.category}</div>
                             <div class="provider-status">
                                 <span class="status-dot ${statusDot}"></span>
                                 <span>${statusText}</span>
+                            </div>
+                            <div class="provider-meta">
+                                <span class="tier-badge">Tier ${p.tier}</span>
+                                <span>${p.adapter}</span>
                             </div>
                         </div>`;
                     });
@@ -250,12 +313,54 @@
                     html += '</div></div>';
                 });
                 
-                categoriesEl.innerHTML = html;
+                // Manual check section
+                if (manualProviders.length > 0) {
+                    html += `<div class="manual-section">
+                        <div class="manual-title">Manual Checks Required (${manualProviders.length})</div>`;
+                    
+                    manualProviders.sort((a, b) => a.name.localeCompare(b.name)).forEach(p => {
+                        html += `<div class="manual-provider">
+                            ${p.name} — ${p.category}
+                            <a href="${p.page_url}" class="manual-link" target="_blank">View Status</a>
+                        </div>`;
+                    });
+                    html += '</div>';
+                }
+                
+                // Outage incidents section (if any)
+                if (data.incidents && data.incidents.length > 0) {
+                    html += `<div class="incidents-section">
+                        <div class="category-title">Active Incidents</div>`;
+                    
+                    data.incidents.forEach(inc => {
+                        html += `<div class="incident-item">
+                            <div class="incident-title">${inc.title || 'Untitled Incident'}</div>
+                            <div class="incident-meta">
+                                Provider: ${inc.provider_id} | Impact: ${inc.impact || 'unknown'} | 
+                                Started: ${inc.started_at ? new Date(inc.started_at).toLocaleString() : 'unknown'}
+                            </div>
+                        </div>`;
+                    });
+                    html += '</div>';
+                }
+                
+                contentEl.innerHTML = html;
                 
             } catch (e) {
-                document.getElementById('dashboard').innerHTML = 
+                document.getElementById('app').innerHTML = 
                     '<h1>Error Loading Dashboard</h1><p>' + e.message + '</p>';
             }
+        }
+        
+        function viewProvider(name) {
+            fetch(`/api/v1/providers?enabled_only=true`)
+                .then(r => r.json())
+                .then(providers => {
+                    const p = providers.find(pr => pr.name === name);
+                    if (p && p.endpoint) {
+                        window.open(p.page_url, '_blank');
+                    }
+                });
         }
         
         // Load on startup

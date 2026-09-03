@@ -3,9 +3,10 @@ package api
 import (
 	"compress/gzip"
 	"context"
-	"encoding/json"
 	_ "embed"
+	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"strings"
@@ -15,12 +16,6 @@ import (
 	"github.com/ccarson/belltower/internal/adapters"
 	"github.com/ccarson/belltower/internal/store"
 )
-
-//go:embed static/htmx.min.js
-var htmxJS []byte
-
-//go:embed templates/dashboard.html
-var dashboardHTML string
 
 // Server is the HTTP server for the status page monitor
 type Server struct {
@@ -37,7 +32,6 @@ type snapshotCache struct {
 	data      []byte
 	etag      string
 	timestamp time.Time
-	indicator string // overall indicator
 }
 
 // Config holds server configuration
@@ -72,7 +66,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/metrics", s.handleMetrics)
 
 	// Dashboard
-	mux.HandleFunc("/", s.handleDashboard)
+	mux.Handle("/", http.HandlerFunc(s.handleDashboard))
 
 	return mux
 }
@@ -169,11 +163,12 @@ func (s *Server) handleOutages(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleProviders(w http.ResponseWriter, r *http.Request) {
 	adapterFilter := r.URL.Query().Get("adapter")
 	category := r.URL.Query().Get("category")
+	enabledOnly := r.URL.Query().Get("enabled_only") == "true"
 
 	providers, err := s.db.GetProviders(store.ProviderFilter{
 		Adapter:     adapterFilter,
 		Category:    category,
-		EnabledOnly: false,
+		EnabledOnly: enabledOnly,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -249,15 +244,53 @@ func (s *Server) handleProvider(w http.ResponseWriter, r *http.Request) {
 	// Get open incidents
 	openIncidents, err := s.db.GetOpenIncidents()
 	
+	// Filter to just this provider's incidents
+	var providerIncidents []store.Incident
+	for _, inc := range openIncidents {
+		if inc.ProviderID == p.ID {
+			providerIncidents = append(providerIncidents, inc)
+		}
+	}
+
 	// Get components
 	var components []store.Component
-	rows, err := s.db.Query("SELECT name, status, updated_at FROM components WHERE provider_id = ?", p.ID)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var c store.Component
-			rows.Scan(&c.Name, &c.Status, &c.UpdatedAt)
-			components = append(components, c)
+	if p.Endpoint != "" {
+		rows, err := s.db.Query("SELECT name, status, updated_at FROM components WHERE provider_id = ? ORDER BY name", p.ID)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var c store.Component
+				rows.Scan(&c.Name, &c.Status, &c.UpdatedAt)
+				components = append(components, c)
+			}
+		}
+	}
+
+	// Get recent check history (last 24 hours)
+	type checkHistory struct {
+		TS       string `json:"ts"`
+		Indicator string `json:"indicator"`
+		LatencyMS int    `json:"latency_ms"`
+		OK       bool   `json:"ok"`
+	}
+	
+	var history []checkHistory
+	if p.Endpoint != "" {
+		rows, err := s.db.Query(`
+			SELECT ts, indicator, latency_ms, ok FROM checks 
+			WHERE endpoint = ? 
+			ORDER BY ts DESC LIMIT 100
+		`, p.Endpoint)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var ch checkHistory
+				var okInt int
+				if err := rows.Scan(&ch.TS, &ch.Indicator, &ch.LatencyMS, &okInt); err == nil {
+					ch.OK = okInt == 1
+					history = append(history, ch)
+				}
+			}
 		}
 	}
 
@@ -274,8 +307,9 @@ func (s *Server) handleProvider(w http.ResponseWriter, r *http.Request) {
 		"current":     check.Indicator,
 		"ok":          check.OK,
 		"last_check":  check.TS,
-		"incidents":   openIncidents,
+		"incidents":   providerIncidents,
 		"components":  components,
+		"check_history": history,
 	}
 
 	json.NewEncoder(w).Encode(response)
@@ -359,9 +393,34 @@ func (s *Server) handleChanges(w http.ResponseWriter, r *http.Request) {
 		Timestamp string `json:"timestamp"`
 	}
 
-	// This is a simplified implementation - in reality we'd query the checks table
-	// for changes since the given timestamp
-	json.NewEncoder(w).Encode([]change{})
+	// Query checks for changes since the given timestamp
+	rows, err := s.db.Query(`
+		SELECT DISTINCT endpoint, indicator, ts FROM checks
+		WHERE ts >= ?
+		ORDER BY ts DESC
+		LIMIT 100
+	`, since)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var changes []change
+	for rows.Next() {
+		var c change
+		var indicator string
+		if err := rows.Scan(&c.Provider, &indicator, &c.Timestamp); err == nil {
+			c.New = indicator
+			changes = append(changes, c)
+		}
+	}
+
+	if changes == nil {
+		changes = []change{}
+	}
+
+	json.NewEncoder(w).Encode(changes)
 }
 
 // handleHealth returns the service's own health
@@ -441,6 +500,7 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 
 // handleDashboard serves the HTML dashboard
 func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
+	// Serve static files
 	if r.URL.Path == "/static/htmx.min.js" {
 		w.Header().Set("Content-Type", "application/javascript")
 		w.Write(htmxJS)
@@ -448,7 +508,8 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html")
-	io.WriteString(w, dashboardHTML)
+	tmpl := template.Must(template.New("dashboard").Parse(dashboardTemplate))
+	tmpl.Execute(w, nil)
 }
 
 // RefreshSnapshot rebuilds the in-memory snapshot cache
@@ -536,6 +597,19 @@ const OpenAPISpec = `{
         }
       }
     },
+    "/api/v1/providers/{id}": {
+      "get": {
+        "summary": "Get provider details including incidents and components",
+        "responses": {
+          "200": {
+            "description": "Provider details",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
     "/api/v1/incidents": {
       "get": {
         "summary": "Search incidents",
@@ -549,6 +623,22 @@ const OpenAPISpec = `{
         "responses": {
           "200": {
             "description": "Incident list",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/changes": {
+      "get": {
+        "summary": "Get recent changes since a timestamp",
+        "parameters": [
+          {"name": "since", "in": "query", "schema": {"type": "string", "format": "date-time"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Change list",
             "content": {
               "application/json": {}
             }
@@ -584,3 +674,9 @@ const OpenAPISpec = `{
     }
   }
 }`
+
+//go:embed static/htmx.min.js
+var htmxJS []byte
+
+//go:embed templates/dashboard.html
+var dashboardTemplate string

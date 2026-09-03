@@ -57,6 +57,7 @@ type ProviderInfo struct {
 	PageURL  string
 	Endpoint string
 	Adapter  string
+	Tier     int
 }
 
 // ProviderFilter filters providers in queries
