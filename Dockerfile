@@ -1,6 +1,6 @@
 # Multi-stage build for belltower (formerly statusd)
 # Stage 1: Build
-FROM golang:1.23-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
@@ -38,9 +38,7 @@ VOLUME ["/data"]
 # Expose the application port
 EXPOSE 8088
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD ["/belltower", "--health-check"] || exit 1
+# No built-in healthcheck in scratch image - relies on external monitoring (Prometheus)
 
 # Run the application
 ENTRYPOINT ["/belltower"]

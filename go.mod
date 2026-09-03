@@ -1,6 +1,6 @@
 module github.com/ccarson/belltower
 
-go 1.26.4
+go 1.25.0
 
 require (
 	github.com/spf13/cobra v1.10.2
