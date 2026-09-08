@@ -931,10 +931,11 @@ providers:
       name: Microsoft 365
       category: SaaS
       page_url: https://status.cloud.microsoft/
-      adapter: manual
+      adapter: rss
+      endpoint: https://status.cloud.microsoft/api/feed/mac
       tier: 3
-      enabled: false
-      notes: Microsoft 365 requires Graph tenant auth - out of scope for v1
+      enabled: true
+      notes: Public MAC status feed. Full M365 incidents require Graph API tenant auth (out of scope). Check @MSFT365Status on Twitter for wider incidents.
     - id: microsoft-azure
       name: Microsoft Azure
       category: Cloud
