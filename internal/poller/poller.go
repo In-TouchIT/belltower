@@ -100,6 +100,8 @@ func (p *Poller) RunOnce(ctx context.Context) error {
 		wg       sync.WaitGroup
 		errMu    sync.Mutex
 		errCount int
+		resultsMu sync.Mutex
+		results  []store.PollResult
 	)
 	jobs := make(chan string)
 
@@ -111,7 +113,11 @@ func (p *Poller) RunOnce(ctx context.Context) error {
 				if ctx.Err() != nil {
 					return
 				}
-				if failed := p.pollEndpoint(ctx, byEndpoint[endpoint]); failed {
+				r, failed := p.pollEndpoint(ctx, byEndpoint[endpoint])
+				resultsMu.Lock()
+				results = append(results, r)
+				resultsMu.Unlock()
+				if failed {
 					errMu.Lock()
 					errCount++
 					errMu.Unlock()
@@ -131,6 +137,14 @@ func (p *Poller) RunOnce(ctx context.Context) error {
 	}
 	close(jobs)
 	wg.Wait()
+
+	// Batch-write all results in a single transaction to avoid SQLITE_BUSY
+	// from concurrent writers. This makes each cycle's DB writes atomic.
+	if len(results) > 0 {
+		if dbErr := p.db.SavePollResults(results); dbErr != nil {
+			log.Printf("Failed to batch save poll results: %v", dbErr)
+		}
+	}
 
 	p.mu.Lock()
 	p.lastErrs = errCount
@@ -164,11 +178,11 @@ func pruneCycles(interval time.Duration) int64 {
 	return n
 }
 
-// pollEndpoint fetches one endpoint and records the result against every
-// provider that shares it. It reports whether the fetch failed.
-func (p *Poller) pollEndpoint(ctx context.Context, providers []store.Provider) bool {
+// pollEndpoint fetches one endpoint and returns the result for batch
+// persistence. It reports whether the fetch failed.
+func (p *Poller) pollEndpoint(ctx context.Context, providers []store.Provider) (store.PollResult, bool) {
 	if len(providers) == 0 {
-		return false
+		return store.PollResult{}, false
 	}
 	primary := providers[0]
 
@@ -177,7 +191,7 @@ func (p *Poller) pollEndpoint(ctx context.Context, providers []store.Provider) b
 	jitter := time.Duration(rand.Int63n(int64(500 * time.Millisecond)))
 	select {
 	case <-ctx.Done():
-		return false
+		return store.PollResult{}, false
 	case <-time.After(jitter):
 	}
 
@@ -217,55 +231,46 @@ func (p *Poller) pollEndpoint(ctx context.Context, providers []store.Provider) b
 		check.Indicator = string(result.Indicator)
 	}
 
-	if dbErr := p.db.UpsertCheck(check); dbErr != nil {
-		log.Printf("Failed to save check for %s: %v", primary.Name, dbErr)
-	}
+	// Collect incidents and components for all providers sharing this endpoint.
+	var pollResult store.PollResult
+	pollResult.Check = check
+	pollResult.Providers = providers
 
-	if err != nil {
-		return true
-	}
+	if err == nil {
+		for _, provider := range providers {
+			for _, inc := range result.Incidents {
+				if inc.ExtID == "" {
+					continue
+				}
+				pollResult.Incidents = append(pollResult.Incidents, store.Incident{
+					ProviderID: provider.ID,
+					ExtID:      inc.ExtID,
+					Title:      inc.Title,
+					Impact:     inc.Impact,
+					Status:     inc.Status,
+					StartedAt:  formatTime(inc.StartedAt),
+					ResolvedAt: formatTime(inc.ResolvedAt),
+					URL:        inc.URL,
+					Body:       inc.Body,
+					RawJSON:    inc.RawJSON,
+				})
+			}
 
-	for _, provider := range providers {
-		p.saveResult(provider, result)
-	}
-	return false
-}
-
-// saveResult persists the incidents and components from a successful fetch.
-func (p *Poller) saveResult(provider store.Provider, result adapters.Result) {
-	for _, inc := range result.Incidents {
-		if inc.ExtID == "" {
-			continue // no stable key, would collide with every other such incident
-		}
-		if dbErr := p.db.UpsertIncident(store.Incident{
-			ProviderID: provider.ID,
-			ExtID:      inc.ExtID,
-			Title:      inc.Title,
-			Impact:     inc.Impact,
-			Status:     inc.Status,
-			StartedAt:  formatTime(inc.StartedAt),
-			ResolvedAt: formatTime(inc.ResolvedAt),
-			URL:        inc.URL,
-			Body:       inc.Body,
-			RawJSON:    inc.RawJSON,
-		}); dbErr != nil {
-			log.Printf("Failed to save incident for %s: %v", provider.Name, dbErr)
-		}
-	}
-
-	for _, comp := range result.Components {
-		if comp.Name == "" {
-			continue
-		}
-		if dbErr := p.db.UpsertComponent(store.Component{
-			ProviderID: provider.ID,
-			Name:       comp.Name,
-			Status:     comp.Status,
-			UpdatedAt:  formatTime(comp.UpdatedAt),
-		}); dbErr != nil {
-			log.Printf("Failed to save component for %s: %v", provider.Name, dbErr)
+			for _, comp := range result.Components {
+				if comp.Name == "" {
+					continue
+				}
+				pollResult.Components = append(pollResult.Components, store.Component{
+					ProviderID: provider.ID,
+					Name:       comp.Name,
+					Status:     comp.Status,
+					UpdatedAt:  formatTime(comp.UpdatedAt),
+				})
+			}
 		}
 	}
+
+	return pollResult, err != nil
 }
 
 // formatTime renders a timestamp for storage, mapping the zero time to the

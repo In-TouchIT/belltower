@@ -122,7 +122,7 @@ func runServer(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	dsn := fmt.Sprintf("file:%s?_journal_mode=WAL&_busy_timeout=5000&_sync=normal", dbPath)
+	dsn := fmt.Sprintf("file:%s?_journal_mode=WAL&_busy_timeout=30000&_sync=normal", dbPath)
 	db, err := store.Open(dsn)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
