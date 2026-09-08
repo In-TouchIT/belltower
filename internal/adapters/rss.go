@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -21,7 +20,7 @@ type RSSAdapter struct {
 
 // RSS is the standard RSS 2.0 structure
 type RSS struct {
-	XMLName xml.Name `xml:"rss"`
+	XMLName xml.Name   `xml:"rss"`
 	Channel RSSChannel `xml:"channel"`
 }
 
@@ -50,38 +49,54 @@ func (a *RSSAdapter) Fetch(ctx context.Context, p ProviderInfo) (Result, error) 
 		return Result{}, fmt.Errorf("no endpoint for RSS provider %s", p.Name)
 	}
 
-	data, err := a.fetch(ctx, endpoint)
+	httpResp, err := httpGet(ctx, a.client, a.ua, endpoint, "application/rss+xml, application/xml, text/xml")
 	if err != nil {
-		return Result{}, err
+		return Result{HTTPStatus: httpResp.StatusCode}, err
 	}
+	data := httpResp.Body
 
 	result := Result{
-		Indicator: IndicatorNone,
+		Indicator:  IndicatorNone,
+		HTTPStatus: httpResp.StatusCode,
 	}
 
-	// Try parsing as XML RSS
+	// A feed we cannot parse is reported as an error, not as "operational".
 	var rss RSS
 	if err := xml.Unmarshal(data, &rss); err != nil {
-		// Fall back to JSON parsing (some feeds use JSON RSS)
-		result = a.parseJSONRSS(data, endpoint)
-		return result, nil
+		return Result{HTTPStatus: httpResp.StatusCode}, fmt.Errorf("failed to parse RSS feed: %w", err)
 	}
 
-	// Process RSS items - each item typically contains an incident summary
-	// with embedded status updates
+	// A status RSS feed is an archive, not a list of live incidents, and some
+	// (IBM Cloud's, for one) are general notification feeds carrying mostly
+	// release notes and announcements. Both have to be filtered out, or every
+	// historical entry is reported as a currently-open incident.
+	now := time.Now().UTC()
 	for _, item := range rss.Channel.Items {
 		incident := a.parseRSSItem(item)
-		if incident.Title != "" {
-			result.Incidents = append(result.Incidents, incident)
-			
-			// Check if this incident indicates an ongoing issue
-			if a.isIncidentActive(incident) {
-				// Determine indicator based on severity
-				if a.isIncidentCritical(incident) {
-					result.Indicator = IndicatorMajor
-				} else if result.Indicator == IndicatorNone {
-					result.Indicator = IndicatorMinor
-				}
+		if incident.Title == "" {
+			continue
+		}
+		if isInformationalItem(incident.Title, incident.Body) {
+			continue
+		}
+
+		// An entry older than the active window is history: RSS carries no
+		// resolution marker, so age is the only signal that it is over.
+		stale := !incident.StartedAt.IsZero() && now.Sub(incident.StartedAt) > rssActiveWindow
+		if stale {
+			incident.Status = StatusResolved
+			if incident.ResolvedAt.IsZero() {
+				incident.ResolvedAt = incident.StartedAt
+			}
+		}
+
+		result.Incidents = append(result.Incidents, incident)
+
+		if !stale && a.isIncidentActive(incident) {
+			if a.isIncidentCritical(incident) {
+				result.Indicator = IndicatorMajor
+			} else if result.Indicator == IndicatorNone {
+				result.Indicator = IndicatorMinor
 			}
 		}
 	}
@@ -89,26 +104,51 @@ func (a *RSSAdapter) Fetch(ctx context.Context, p ProviderInfo) (Result, error) 
 	return result, nil
 }
 
-func (a *RSSAdapter) fetch(ctx context.Context, endpoint string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("User-Agent", a.ua)
-	req.Header.Set("Accept", "application/json, application/xml, text/xml")
+// rssActiveWindow is how recent a feed entry must be to count as a live
+// incident. Feeds publish months of history with no resolution marker.
+const rssActiveWindow = 7 * 24 * time.Hour
 
-	resp, err := a.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+// informationalMarkers identify feed entries that are not incidents at all.
+// Several vendors publish release notes, deprecations and announcements on the
+// same feed as incidents, and many feeds tag the entry type explicitly.
+var informationalMarkers = []string{
+	"type: release_note",
+	"type: announcement",
+	"type: release note",
+	"type:release_note",
+	"type:announcement",
+}
 
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("RSS feed returned status %d: %s", resp.StatusCode, string(body))
-	}
+// informationalTitles catch untagged notices by their conventional wording.
+var informationalTitles = []string{
+	"is unsupported",
+	"is available",
+	"release note",
+	"end of support",
+	"end of life",
+	"deprecat",
+	"action required:",
+	"is now generally available",
+	"retirement",
+	"will be retired",
+}
 
-	return io.ReadAll(resp.Body)
+// isInformationalItem reports whether a feed entry is an announcement or
+// release note rather than a service incident.
+func isInformationalItem(title, body string) bool {
+	haystack := strings.ToLower(body)
+	for _, marker := range informationalMarkers {
+		if strings.Contains(haystack, marker) {
+			return true
+		}
+	}
+	lowerTitle := strings.ToLower(title)
+	for _, marker := range informationalTitles {
+		if strings.Contains(lowerTitle, marker) {
+			return true
+		}
+	}
+	return false
 }
 
 // parseRSSItem converts an RSS item to our Incident type
@@ -117,12 +157,12 @@ func (a *RSSAdapter) parseRSSItem(item RSSItem) Incident {
 	// The title typically contains the service name and reference ID
 	title := strings.TrimSpace(item.Title)
 	description := a.stripHTML(item.Description)
-	
+
 	return Incident{
 		ExtID:     strings.TrimSpace(item.GUID),
 		Title:     title,
 		Body:      description,
-		Status:    a.extractStatusFromDescription(description),
+		Status:    NormalizeIncidentStatus(a.extractStatusFromDescription(description)),
 		Impact:    a.extractImpactFromDescription(description),
 		StartedAt: parseTime(item.PubDate),
 		URL:       strings.TrimSpace(item.Link),
@@ -168,7 +208,7 @@ func (a *RSSAdapter) extractImpactFromDescription(desc string) string {
 
 // isIncidentActive checks if an incident is still ongoing
 func (a *RSSAdapter) isIncidentActive(inc Incident) bool {
-	return inc.Status != "resolved" && inc.Status != "closed"
+	return !IsResolvedStatus(inc.Status)
 }
 
 // isIncidentCritical checks if an incident has critical impact
@@ -204,53 +244,10 @@ func (a *RSSAdapter) stripHTML(s string) string {
 	result = strings.ReplaceAll(result, "&amp;", "&")
 	result = strings.ReplaceAll(result, "&quot;", "\"")
 	result = strings.ReplaceAll(result, "&#39;", "'")
-	
+
 	// Collapse multiple spaces/newlines
 	for strings.Contains(result, "  ") {
 		result = strings.ReplaceAll(result, "  ", " ")
 	}
 	return strings.TrimSpace(result)
 }
-
-// parseJSONRSS handles JSON-format RSS feeds
-func (a *RSSAdapter) parseJSONRSS(data []byte, endpoint string) Result {
-	result := Result{
-		Indicator: IndicatorUnknown,
-	}
-	
-	// Try to parse as JSON RSS-like format
-	var feed struct {
-		Channel struct {
-			Items []struct {
-				Title       string `json:"title"`
-				Link        string `json:"link"`
-				Description string `json:"description"`
-				PubDate     string `json:"pubDate"`
-				GUID        string `json:"guid"`
-			} `json:"item"`
-		} `json:"channel"`
-	}
-	
-	// Actually JSON RSS uses "items" for items
-	var feed2 struct {
-		Title       string `json:"title"`
-		Link        string `json:"link"`
-		Description string `json:"description"`
-		Items       []struct {
-			Title       string `json:"title"`
-			Link        string `json:"link"`
-			Description string `json:"description"`
-			PubDate     string `json:"pubDate"`
-			GUID        string `json:"guid"`
-		} `json:"item"`
-	}
-	
-	_ = feed
-	_ = feed2
-	_ = endpoint
-	
-	return result
-}
-
-// Ensure time import doesn't cause unused warning
-var _ = time.Now

@@ -23,6 +23,71 @@ type Provider struct {
 	Notes    string `yaml:"notes,omitempty"`
 }
 
+// adapterOverride is a provider-specific classification that cannot be derived
+// from URL heuristics alone.
+//
+// Many providers brand their pages as status.<name>.com but do not serve a
+// StatusPage.io API: Cloudflare bot walls (403), login gates (401), custom
+// React apps (HTML), or entirely different platforms. These were verified
+// during Phase 1-2 research (see PLAN.md "Verified findings").
+//
+// The map is keyed by the lowercased provider name as it appears in the CSV
+// and is checked before the URL-based heuristics so the generic status.*
+// catch-all never misclassifies them.
+var adapterOverride = map[string]struct {
+	xAdapter  string
+	xEndpoint string
+	xNotes    string
+}{
+	// xAI uses an RSS feed, not a StatusPage API.
+	"xai": {"rss", "https://status.x.ai/feed.xml", "Uses RSS feed (https://status.x.ai/feed.xml)"},
+
+	// Vultr serves a custom JSON endpoint, not the StatusPage summary path.
+	"vultr": {"statuspage", "https://status.vultr.com/status.json", "Uses custom JSON API (status.json and alerts.json)"},
+
+	// The following providers brand their status pages as status.<name>.com
+	// but do not serve a StatusPage.io API. Each was probed live and returned
+	// 401, 403, 404, or an HTML page instead of JSON.
+	"8x8":                    {"manual", "", "Custom platform - not StatusPage.io"},
+	"admiral":                {"manual", "", "Custom platform - not StatusPage.io"},
+	"adobe":                  {"manual", "", "Custom platform - not StatusPage.io"},
+	"auth0":                  {"manual", "", "Custom platform - not StatusPage.io"},
+	"automox":                {"manual", "", "Custom platform - not StatusPage.io"},
+	"bitwarden":              {"manual", "", "Custom platform - not StatusPage.io"},
+	"blumira":                {"manual", "", "Custom platform - not StatusPage.io"},
+	"cdn77":                  {"manual", "", "BetterStack API endpoint returns 404 - uses Next.js app, needs custom adapter or manual monitoring"},
+	"coloblxs":               {"manual", "", "Custom platform - not StatusPage.io"},
+	"crexendo":               {"manual", "", "Custom platform - not StatusPage.io"},
+	"crowdstrike":            {"manual", "", "Known issue: DNS resolution issue, custom platform"},
+	"cyberark":               {"manual", "", "Custom platform - not StatusPage.io"},
+	"fastly":                 {"manual", "", "Custom platform - not StatusPage.io"},
+	"freshworks":             {"manual", "", "Custom platform - not StatusPage.io"},
+	"hetzner":                {"manual", "", "Custom platform - not StatusPage.io"},
+	"hugging face":           {"manual", "", "Custom platform - not StatusPage.io"},
+	"lastpass":               {"manual", "", "Custom platform - not StatusPage.io"},
+	"level":                  {"manual", "", "Custom platform - not StatusPage.io"},
+	"manageengine":           {"manual", "", "Custom platform - not StatusPage.io"},
+	"microsoft azure devops": {"manual", "", "Custom platform - not StatusPage.io"},
+	"mistral":                {"manual", "", "Custom platform - not StatusPage.io"},
+	"mspbots":                {"manual", "", "Custom platform - not StatusPage.io"},
+	"n-able":                 {"manual", "", "Custom platform - not StatusPage.io"},
+	"okta":                   {"manual", "", "Custom platform - not StatusPage.io"},
+	"ovhcloud":               {"manual", "", "Known issue: Custom status platform, not StatusPage.io"},
+	"pagerduty":              {"manual", "", "Custom platform - not StatusPage.io"},
+	"paypal":                 {"manual", "", "Custom platform - not StatusPage.io"},
+	"redis":                  {"manual", "", "Custom platform - not StatusPage.io"},
+	"rewst":                  {"manual", "", "Custom platform - not StatusPage.io"},
+	"ringcentral":            {"manual", "", "Custom platform - not StatusPage.io"},
+	"servosity":              {"manual", "", "Custom platform - not StatusPage.io"},
+	"sonicwall":              {"manual", "", "Custom platform - not StatusPage.io"},
+	"sophos":                 {"manual", "", "Custom platform - not StatusPage.io"},
+	"syncro":                 {"manual", "", "Custom platform - not StatusPage.io"},
+	"uptimerobot":            {"manual", "", "Custom platform - not StatusPage.io"},
+	"vipre":                  {"manual", "", "Custom platform - not StatusPage.io"},
+	"zerotier":               {"manual", "", "Custom platform - not StatusPage.io"},
+	"zoho":                   {"manual", "", "Custom platform - not StatusPage.io"},
+}
+
 // determineAdapter maps a provider to the appropriate adapter based on URL patterns.
 // The logic follows the research documented in PLAN.md for the 150 covered providers.
 func determineAdapter(name, url string) (adapter, endpoint, notes string) {
@@ -34,6 +99,11 @@ func determineAdapter(name, url string) (adapter, endpoint, notes string) {
 	// Normalize URL
 	url = strings.TrimSuffix(strings.TrimSpace(url), "/")
 	lowerName := strings.ToLower(name)
+
+	// Provider-specific overrides take precedence over URL heuristics.
+	if ov, ok := adapterOverride[lowerName]; ok {
+		return ov.xAdapter, ov.xEndpoint, ov.xNotes
+	}
 
 	// Direct URL matches for hand-rolled adapters (from PLAN.md "Hand-rolled majors")
 	switch url {
@@ -60,13 +130,13 @@ func determineAdapter(name, url string) (adapter, endpoint, notes string) {
 	case strings.Contains(url, "status.io") || strings.Contains(url, "statusio"):
 		return "statusio", url, ""
 	case strings.Contains(url, "instatus.com"):
-		return "instatus", url+"summary.json", ""
-	case strings.Contains(url, "betterstack.com") || strings.Contains(url, "cdn77"):
-		return "betterstack", url+"/index.json", ""
+		return "instatus", url + "/summary.json", ""
+	case strings.Contains(url, "betterstack.com"):
+		return "betterstack", url + "/index.json", ""
 	case strings.Contains(url, "sorryapp.com"):
-		return "sorryapp", url+"/api/v1/status", ""
+		return "sorryapp", url + "/api/v1/status", ""
 	case strings.Contains(url, "statuspage.io") || strings.Contains(url, ".statuspage.dev"):
-		return "statuspage", url+"/api/v2/summary.json", ""
+		return "statuspage", url + "/api/v2/summary.json", ""
 	}
 
 	// Special case: Oracle Cloud uses a custom React app with RSS feed, not StatusPage
@@ -80,29 +150,29 @@ func determineAdapter(name, url string) (adapter, endpoint, notes string) {
 		return "manual", "", "Microsoft 365 requires Graph tenant auth - out of scope for v1"
 	}
 
-	// Azure DevOps uses a different endpoint
-	if lowerName == "microsoft azure devops" {
-		return "statuspage", "https://status.dev.azure.com/api/v2/summary.json", ""
+	// IBM Cloud publishes an RSS notifications feed, not a StatusPage/Status.io instance
+	if strings.Contains(lowerName, "ibm cloud") || strings.Contains(url, "cloud.ibm.com/status") {
+		return "rss", "https://cloud.ibm.com/status/api/notifications/feed.rss", ""
 	}
 
-	// SendGrid shares Twilio's status page
-	if strings.Contains(lowerName, "sendgrid") {
-		return "manual", "", "Uses Twilio status page (SendGrid is under Twilio)"
+	// Apple publishes an undocumented JS data feed with no standard status API
+	if strings.Contains(lowerName, "apple") {
+		return "manual", "", "Undocumented JS data feed at https://www.apple.com/support/systemstatus/data/system_status_en_US.js — needs a custom JS-feed adapter; review manually"
 	}
 
-	// Broadcom duplicates - VMware and Symantec both use same URL
-	if lowerName == "broadcom symantec" {
-		return "manual", "", "Shares endpoint with Broadcom VMware - check status.broadcom.com manually"
+	// Zscaler cloud status is HTML-only; discovered JSON/RSS endpoints need a scraper
+	if strings.Contains(lowerName, "zscaler") {
+		return "manual", "", "HTML-only cloud status; discovered endpoints needing a scraper (review manually): cloud-status https://trust.zscaler.com/cloud-status, incidents https://trust.zscaler.com/incidents, ZIA https://trust.zscaler.com/zscaler.net/incidents, ZPA https://trust.zscaler.com/private.zscaler.com/cloud-status"
 	}
 
 	// Status.io providers from PLAN.md research
 	statusioProviders := map[string]string{
-		"gitlab":         "5b36dc6502d06804c08349f7",
-		"mimecast":       "5d849b1c02e65b3ec45369d4",
-		"connectwise":    "619cf82551fec9053d612f09",
-		"let's encrypt":  "55957a99e800baa4470002da",
-		"halopsa":        "63ef45da7ee94905308a1a4a",
-		"hornet":         "591aaa7fe69f388425000fda",
+		"gitlab":        "5b36dc6502d06804c08349f7",
+		"mimecast":      "5d849b1c02e65b3ec45369d4",
+		"connectwise":   "619cf82551fec9053d612f09",
+		"let's encrypt": "55957a99e800baa4470002da",
+		"halopsa":       "63ef45da7ee94905308a1a4a",
+		"hornet":        "591aaa7fe69f388425000fda",
 	}
 
 	// Check if this provider uses status.io (based on name match from research)
@@ -113,25 +183,25 @@ func determineAdapter(name, url string) (adapter, endpoint, notes string) {
 	}
 
 	// Betterstack/Instatus providers from PLAN.md
-	betterstackProviders := []string{"cloudradial", "level.io", "quad9"}
+	betterstackProviders := []string{"cloudradial", "quad9"}
 	for _, p := range betterstackProviders {
 		if strings.Contains(lowerName, p) {
-			return "betterstack", url+"/index.json", ""
+			return "betterstack", url + "/index.json", ""
 		}
 	}
 
 	instatusProviders := []string{}
 	for _, p := range instatusProviders {
 		if strings.Contains(lowerName, p) {
-			return "instatus", url+"summary.json", ""
+			return "instatus", url + "summary.json", ""
 		}
 	}
 
-	// Sorryapp providers from PLAN.md
+	// Sorryapp providers from PLAN.md (Broadcom VMware + Symantec share one status page)
 	sorryappProviders := []string{"broadcom", "pingdom", "postmark"}
 	for _, p := range sorryappProviders {
-		if strings.Contains(lowerName, p) && !strings.Contains(lowerName, "symantec") {
-			return "sorryapp", url+"/api/v1/status", ""
+		if strings.Contains(lowerName, p) {
+			return "sorryapp", url + "/api/v1/status", ""
 		}
 	}
 
@@ -140,7 +210,7 @@ func determineAdapter(name, url string) (adapter, endpoint, notes string) {
 	// We'll try the /api/v2/summary.json endpoint for these
 	if strings.HasPrefix(url, "https://status.") || strings.Contains(url, "status.") {
 		// These are likely StatusPage instances that we can verify by trying the API endpoint
-		return "statuspage", url+"/api/v2/summary.json", ""
+		return "statuspage", url + "/api/v2/summary.json", ""
 	}
 
 	// Default to manual for unknown platforms

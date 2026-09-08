@@ -1,6 +1,6 @@
 # Build artifacts
 /bin
-/bin/
+/seed
 
 # Data files
 data/
@@ -25,3 +25,6 @@ Thumbs.db
 
 # Coverage
 coverage.out
+
+# Local backups of generated config
+*.backup

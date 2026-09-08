@@ -3,16 +3,21 @@
 BINARY_NAME=belltower
 GO=go
 
+# Deploy target (override on the command line, e.g. make deploy DEPLOY_HOST=host)
+DEPLOY_HOST?=192.168.111.122
+DEPLOY_USER?=ubuntu
+DEPLOY_PATH?=/opt/status-page
+
 # Default target
 all: build
 
 # Build the binary
 build:
-	$(GO) build -o bin/$(BINARY_NAME) cmd/$(BINARY_NAME)/main.go
+	$(GO) build -o bin/$(BINARY_NAME) ./cmd/$(BINARY_NAME)
 
 # Build the seed tool
 seed-tool:
-	$(GO) build -o bin/seed cmd/seed/main.go
+	$(GO) build -o bin/seed ./cmd/seed
 
 # Run the seed tool to generate providers.yaml
 seed: seed-tool
@@ -29,6 +34,7 @@ test:
 # Run linter
 lint:
 	$(GO) vet ./...
+	@test -z "$$(gofmt -l . | tee /dev/stderr)"
 
 # Clean build artifacts
 clean:
@@ -43,9 +49,11 @@ deploy: docker
 	rsync -av --delete \
 		--exclude 'data' \
 		--exclude '.git' \
+		--exclude 'bin' \
+		--exclude '*.backup' \
 		--exclude 'node_modules' \
-		./ ubuntu@192.168.111.122:/opt/status-page/
-	ssh ubuntu@192.168.111.122 "cd /opt/status-page && sudo docker compose up -d --build"
+		./ $(DEPLOY_USER)@$(DEPLOY_HOST):$(DEPLOY_PATH)/
+	ssh $(DEPLOY_USER)@$(DEPLOY_HOST) "cd $(DEPLOY_PATH) && sudo docker compose up -d --build"
 
 # Run tests with coverage
 test-coverage:
@@ -56,6 +64,6 @@ test-coverage:
 fmt:
 	$(GO) fmt ./...
 
-# Check formatting
+# Check formatting (go fmt has no -l flag; gofmt does)
 fmt-check:
-	$(GO) fmt -l ./...
+	@test -z "$$(gofmt -l . | tee /dev/stderr)"

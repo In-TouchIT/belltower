@@ -1,4 +1,4 @@
-module github.com/ccarson/belltower
+module github.com/In-TouchIT/belltower
 
 go 1.25.0
 

@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Belltower Status Dashboard</title>
-    <script src="/static/htmx.min.js"></script>
     <style>
         :root {
             --bg: #0a0a0f;
@@ -30,6 +29,15 @@
             font-size: 1.8rem;
             margin-bottom: 5px;
             color: var(--blue);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        h1 .bell {
+            /* Keep the emoji at its own colour rather than inheriting --blue. */
+            color: initial;
+            font-size: 1.6rem;
+            line-height: 1;
         }
         .subtitle {
             color: var(--text-secondary);
@@ -193,8 +201,8 @@
 </head>
 <body>
     <div id="app">
-        <h1>Belltower Status Dashboard</h1>
-        <div class="subtitle">Monitoring 219 vendor status pages — auto-refresh every 60s</div>
+        <h1><span class="bell" role="img" aria-label="Belltower">🔔</span>Belltower Status Dashboard</h1>
+        <div class="subtitle">Loading…</div>
         
         <div class="stats-bar" id="stats-bar">
             <div class="loading">Loading overview...</div>
@@ -206,167 +214,180 @@
     </div>
 
     <script>
-        // Fetch and render the snapshot
+        // Every value below originates from a third-party vendor status feed.
+        // It is untrusted input, so nothing reaches the DOM as markup:
+        // text goes through esc(), URLs through safeURL().
+        function esc(value) {
+            if (value === null || value === undefined) return '';
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // Only http(s) links are emitted, so a javascript: or data: URL in a
+        // feed cannot become a clickable script.
+        function safeURL(value) {
+            if (!value) return '';
+            try {
+                const parsed = new URL(value, window.location.origin);
+                if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '';
+                return esc(parsed.href);
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function fmtTime(value) {
+            if (!value) return 'unknown';
+            const d = new Date(value);
+            if (isNaN(d.getTime()) || d.getFullYear() < 1980) return 'unknown';
+            return d.toLocaleString();
+        }
+
+        // Health is read from the indicator, never from `ok`.
+        //
+        // `ok` only reports whether the poll reached the provider: a vendor
+        // that answers promptly while announcing a critical outage still has
+        // ok === true, so gating on it rendered live outages as "Operational".
+        const STATES = {
+            none:        { cls: 'operational',  label: 'Operational' },
+            minor:       { cls: 'degraded',     label: 'Degraded' },
+            major:       { cls: 'outage',       label: 'Outage' },
+            critical:    { cls: 'outage',       label: 'Major Outage' },
+            maintenance: { cls: 'maintenance',  label: 'Maintenance' },
+            unknown:     { cls: 'unknown',      label: 'Unknown' }
+        };
+
+        function stateFor(provider) {
+            const state = STATES[provider.indicator];
+            if (state) return state;
+            // An unrecognised indicator is surfaced as unknown, not assumed healthy.
+            return STATES.unknown;
+        }
+
+        function providerCard(p) {
+            const state = stateFor(p);
+            const detail = !p.ok && p.error ? `<div class="provider-meta" title="${esc(p.error)}">unreachable</div>` : '';
+            return `<div class="provider-card ${state.cls}" data-page-url="${safeURL(p.page_url)}">
+                <div class="provider-name">${esc(p.name)}</div>
+                <div class="provider-category">${esc(p.category)}</div>
+                <div class="provider-status">
+                    <span class="status-dot ${state.cls}"></span>
+                    <span>${esc(state.label)}</span>
+                </div>
+                <div class="provider-meta">
+                    <span class="tier-badge">Tier ${esc(p.tier)}</span>
+                    <span>${esc(p.adapter)}</span>
+                </div>
+                ${detail}
+            </div>`;
+        }
+
+        function renderStats(stats) {
+            document.getElementById('stats-bar').innerHTML = `
+                <div class="stat-badge healthy"><span class="count">${esc(stats.operational)}</span> Operational</div>
+                <div class="stat-badge degraded"><span class="count">${esc(stats.degraded)}</span> Degraded</div>
+                <div class="stat-badge outage"><span class="count">${esc(stats.outages)}</span> Outages</div>
+                <div class="stat-badge"><span class="count">${esc(stats.maintenance)}</span> Maintenance</div>
+                <div class="stat-badge unknown"><span class="count">${esc(stats.unknown)}</span> Unknown</div>
+                <div class="stat-badge"><span class="count">${esc(stats.unmonitored)}</span> Manual Check</div>
+                <div class="stat-badge"><span class="count">${esc(stats.open_incidents)}</span> Open Incidents</div>
+                <div class="stat-badge"><span class="count">${esc(stats.total_providers)}</span> Total</div>`;
+        }
+
         async function loadDashboard() {
             try {
                 const resp = await fetch('/api/v1/snapshot');
-                if (!resp.ok) throw new Error('Failed to fetch snapshot');
+                if (!resp.ok) throw new Error('Failed to fetch snapshot (HTTP ' + resp.status + ')');
                 const data = await resp.json();
-                
-                // Render stats
-                const stats = data.stats;
-                const statsEl = document.getElementById('stats-bar');
-                statsEl.innerHTML = `
-                    <div class="stat-badge healthy"><span class="count">${stats.operational}</span> Operational</div>
-                    <div class="stat-badge degraded"><span class="count">${stats.degraded}</span> Degraded</div>
-                    <div class="stat-badge outage"><span class="count">${stats.outages}</span> Outages</div>
-                    <div class="stat-badge"><span class="count">${stats.maintenance}</span> Maintenance</div>
-                    <div class="stat-badge unknown"><span class="count">${stats.unknown}</span> Unknown</div>
-                    <div class="stat-badge"><span class="count">${stats.unmonitored}</span> Manual Check</div>
-                    <div class="stat-badge"><span class="count">${stats.open_incidents}</span> Open Incidents</div>
-                    <div class="stat-badge"><span class="count">${stats.total_providers}</span> Total</div>
-                `;
-                
-                // Group providers by category
+
+                renderStats(data.stats);
+
                 const categories = {};
                 const manualProviders = [];
-                
                 data.providers.forEach(p => {
-                    if (p.adapter === 'manual') {
-                        manualProviders.push(p);
-                        return;
-                    }
-                    if (!categories[p.category]) categories[p.category] = [];
-                    categories[p.category].push(p);
+                    if (p.adapter === 'manual') { manualProviders.push(p); return; }
+                    (categories[p.category] = categories[p.category] || []).push(p);
                 });
-                
-                // Sort categories alphabetically
-                const sortedCats = Object.keys(categories).sort();
-                
-                const contentEl = document.getElementById('dashboard-content');
+
                 let html = '';
-                
-                // Render categories
-                sortedCats.forEach(cat => {
+
+                Object.keys(categories).sort().forEach(cat => {
                     const providers = categories[cat];
-                    // Sort by tier then name
-                    providers.sort((a, b) => {
-                        if (a.tier !== b.tier) return a.tier - b.tier;
-                        return a.name.localeCompare(b.name);
-                    });
-                    
-                    // Count statuses
-                    let up = 0, down = 0, unknown = 0;
+                    providers.sort((a, b) => (a.tier - b.tier) || a.name.localeCompare(b.name));
+
+                    let up = 0, issues = 0, unknown = 0;
                     providers.forEach(p => {
-                        if (p.indicator === 'none' || (p.ok && p.indicator !== 'unknown')) up++;
-                        else if (p.indicator === 'minor' || p.indicator === 'major' || p.indicator === 'critical') down++;
+                        const cls = stateFor(p).cls;
+                        if (cls === 'operational') up++;
+                        else if (cls === 'outage' || cls === 'degraded') issues++;
                         else unknown++;
                     });
-                    
+
                     html += `<div class="category-section">
-                        <div class="category-title">${cat} (${providers.length}) 
+                        <div class="category-title">${esc(cat)} (${providers.length})
                             <span style="font-size:0.8rem;color:var(--text-secondary);">
-                                ${up} up, ${down} issues, ${unknown} unknown
+                                ${up} up, ${issues} issues, ${unknown} unknown
                             </span>
                         </div>
                         <div class="providers-grid">`;
-                    
-                    providers.forEach(p => {
-                        let statusClass = 'operational';
-                        let statusText = 'Operational';
-                        let statusDot = 'operational';
-                        
-                        if (!p.ok) {
-                            if (p.indicator === 'minor' || p.indicator === 'degraded') {
-                                statusClass = 'degraded';
-                                statusText = 'Degraded';
-                                statusDot = 'degraded';
-                            } else if (p.indicator === 'major' || p.indicator === 'critical') {
-                                statusClass = 'outage';
-                                statusText = 'Outage';
-                                statusDot = 'outage';
-                            } else if (p.indicator === 'maintenance') {
-                                statusClass = 'maintenance';
-                                statusText = 'Maintenance';
-                                statusDot = 'maintenance';
-                            } else {
-                                statusClass = 'unknown';
-                                statusText = 'Unknown';
-                                statusDot = 'unknown';
-                            }
-                        }
-                        
-                        html += `<div class="provider-card ${statusClass}" onclick="viewProvider('${p.name}')">
-                            <div class="provider-name">${p.name}</div>
-                            <div class="provider-category">${p.category}</div>
-                            <div class="provider-status">
-                                <span class="status-dot ${statusDot}"></span>
-                                <span>${statusText}</span>
-                            </div>
-                            <div class="provider-meta">
-                                <span class="tier-badge">Tier ${p.tier}</span>
-                                <span>${p.adapter}</span>
-                            </div>
-                        </div>`;
-                    });
-                    
+                    providers.forEach(p => { html += providerCard(p); });
                     html += '</div></div>';
                 });
-                
-                // Manual check section
+
                 if (manualProviders.length > 0) {
                     html += `<div class="manual-section">
                         <div class="manual-title">Manual Checks Required (${manualProviders.length})</div>`;
-                    
                     manualProviders.sort((a, b) => a.name.localeCompare(b.name)).forEach(p => {
-                        html += `<div class="manual-provider">
-                            ${p.name} — ${p.category}
-                            <a href="${p.page_url}" class="manual-link" target="_blank">View Status</a>
-                        </div>`;
+                        const href = safeURL(p.page_url);
+                        const link = href ? `<a href="${href}" class="manual-link" target="_blank" rel="noopener noreferrer">View Status</a>` : '';
+                        html += `<div class="manual-provider">${esc(p.name)} — ${esc(p.category)} ${link}</div>`;
                     });
                     html += '</div>';
                 }
-                
-                // Outage incidents section (if any)
+
                 if (data.incidents && data.incidents.length > 0) {
                     html += `<div class="incidents-section">
-                        <div class="category-title">Active Incidents</div>`;
-                    
+                        <div class="category-title">Active Incidents (${data.incidents.length})</div>`;
                     data.incidents.forEach(inc => {
+                        const body = inc.body ? (inc.body.length > 200 ? inc.body.substring(0, 197) + '...' : inc.body) : '';
+                        const href = safeURL(inc.url);
+                        const link = href ? ` <a href="${href}" class="manual-link" target="_blank" rel="noopener noreferrer">details</a>` : '';
                         html += `<div class="incident-item">
-                            <div class="incident-title">${inc.title || 'Untitled Incident'}</div>
-                            <div class="incident-meta">
-                                Provider: ${inc.provider_id} | Impact: ${inc.impact || 'unknown'} | 
-                                Started: ${inc.started_at ? new Date(inc.started_at).toLocaleString() : 'unknown'}
+                            <div class="incident-title">${esc(inc.title || 'Untitled Incident')}
+                                <span style="font-size:0.7rem; opacity:0.8;">[${esc(inc.status || 'unknown')}]</span>${link}</div>
+                            <div class="incident-meta" style="margin-bottom:5px;">
+                                Provider: ${esc(inc.provider_id)} | Impact: ${esc(inc.impact || 'unknown')} |
+                                Started: ${esc(fmtTime(inc.started_at))}
                             </div>
+                            ${body ? `<div class="incident-body" style="font-size:0.8rem; color:var(--text); opacity:0.9;">${esc(body)}</div>` : ''}
                         </div>`;
                     });
                     html += '</div>';
                 }
-                
-                contentEl.innerHTML = html;
-                
+
+                document.getElementById('dashboard-content').innerHTML = html;
+                document.querySelector('.subtitle').textContent =
+                    `Monitoring ${data.stats.total_providers} vendor status pages — updated ${fmtTime(data.built_at)}`;
             } catch (e) {
-                document.getElementById('app').innerHTML = 
-                    '<h1>Error Loading Dashboard</h1><p>' + e.message + '</p>';
+                const content = document.getElementById('dashboard-content');
+                content.textContent = 'Error loading dashboard: ' + e.message;
             }
         }
-        
-        function viewProvider(name) {
-            fetch(`/api/v1/providers?enabled_only=true`)
-                .then(r => r.json())
-                .then(providers => {
-                    const p = providers.find(pr => pr.name === name);
-                    if (p && p.endpoint) {
-                        window.open(p.page_url, '_blank');
-                    }
-                });
-        }
-        
-        // Load on startup
+
+        // One delegated listener rather than an inline onclick per card, so a
+        // provider name containing a quote cannot break out into script.
+        document.getElementById('dashboard-content').addEventListener('click', ev => {
+            const card = ev.target.closest('.provider-card');
+            if (!card) return;
+            const url = card.getAttribute('data-page-url');
+            if (url) window.open(url, '_blank', 'noopener,noreferrer');
+        });
+
         loadDashboard();
-        
-        // Refresh every 60 seconds
         setInterval(loadDashboard, 60000);
     </script>
 </body>

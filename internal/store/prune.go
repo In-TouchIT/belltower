@@ -1,7 +1,6 @@
 package store
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -17,24 +16,15 @@ func NewPruner(db *DB) *Pruner {
 
 // PruneChecks removes check records older than maxAge
 func (p *Pruner) PruneChecks(maxAge time.Duration) (int64, error) {
-	count, err := p.db.PruneOldChecks(maxAge)
-	if err != nil {
-		return 0, err
-	}
-	if count > 0 {
-		fmt.Printf("Pruned %d old check records\n", count)
-	}
-	return count, nil
+	return p.db.PruneOldChecks(maxAge)
 }
 
 // PruneSnapshots keeps only the last n snapshots
 func (p *Pruner) PruneSnapshots(keep int) (int64, error) {
-	count, err := p.db.PruneOldSnapshots(keep)
-	if err != nil {
-		return 0, err
-	}
-	if count > 0 {
-		fmt.Printf("Pruned %d old snapshots\n", count)
-	}
-	return count, nil
+	return p.db.PruneOldSnapshots(keep)
+}
+
+// PruneResolvedIncidents removes resolved incidents last seen before maxAge ago.
+func (p *Pruner) PruneResolvedIncidents(maxAge time.Duration) (int64, error) {
+	return p.db.PruneResolvedIncidents(maxAge)
 }

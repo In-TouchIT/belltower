@@ -32,29 +32,29 @@ type Provider struct {
 
 // Check represents a single polling result
 type Check struct {
-	Endpoint   string `json:"endpoint" db:"endpoint"`
-	TS         string `json:"ts" db:"ts"`
-	HTTPCode   int    `json:"http_code" db:"http_code"`
-	LatencyMS  int    `json:"latency_ms" db:"latency_ms"`
-	Indicator  string `json:"indicator" db:"indicator"`
-	OK         bool   `json:"ok" db:"ok"`
-	Err        string `json:"err,omitempty" db:"err"`
+	Endpoint  string `json:"endpoint" db:"endpoint"`
+	TS        string `json:"ts" db:"ts"`
+	HTTPCode  int    `json:"http_code" db:"http_code"`
+	LatencyMS int    `json:"latency_ms" db:"latency_ms"`
+	Indicator string `json:"indicator" db:"indicator"`
+	OK        bool   `json:"ok" db:"ok"`
+	Err       string `json:"err,omitempty" db:"err"`
 }
 
 // Incident represents a service incident
 type Incident struct {
-	ProviderID  string `json:"provider_id" db:"provider_id"`
-	ExtID       string `json:"ext_id" db:"ext_id"`
-	Title       string `json:"title" db:"title"`
-	Impact      string `json:"impact" db:"impact"`
-	Status      string `json:"status" db:"status"`
-	StartedAt   string `json:"started_at" db:"started_at"`
-	ResolvedAt  string `json:"resolved_at,omitempty" db:"resolved_at"`
-	URL         string `json:"url,omitempty" db:"url"`
-	Body        string `json:"body,omitempty" db:"body"`
-	RawJSON     string `json:"raw_json,omitempty" db:"raw_json"`
-	FirstSeen   string `json:"first_seen" db:"first_seen"`
-	LastSeen    string `json:"last_seen" db:"last_seen"`
+	ProviderID string `json:"provider_id" db:"provider_id"`
+	ExtID      string `json:"ext_id" db:"ext_id"`
+	Title      string `json:"title" db:"title"`
+	Impact     string `json:"impact" db:"impact"`
+	Status     string `json:"status" db:"status"`
+	StartedAt  string `json:"started_at" db:"started_at"`
+	ResolvedAt string `json:"resolved_at,omitempty" db:"resolved_at"`
+	URL        string `json:"url,omitempty" db:"url"`
+	Body       string `json:"body,omitempty" db:"body"`
+	RawJSON    string `json:"raw_json,omitempty" db:"raw_json"`
+	FirstSeen  string `json:"first_seen" db:"first_seen"`
+	LastSeen   string `json:"last_seen" db:"last_seen"`
 }
 
 // Component represents a sub-component of a provider's service
@@ -67,10 +67,10 @@ type Component struct {
 
 // Snapshot represents the precomputed state at a point in time
 type Snapshot struct {
-	CycleID  int64  `json:"cycle_id" db:"cycle_id"`
-	BuiltAt  string `json:"built_at" db:"built_at"`
-	JSON     []byte `json:"-" db:"json"`
-	ETag     string `json:"etag" db:"etag"`
+	CycleID int64  `json:"cycle_id" db:"cycle_id"`
+	BuiltAt string `json:"built_at" db:"built_at"`
+	JSON    []byte `json:"-" db:"json"`
+	ETag    string `json:"etag" db:"etag"`
 }
 
 // DB wraps a sql.DB with convenient methods

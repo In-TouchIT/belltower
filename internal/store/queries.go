@@ -8,7 +8,7 @@ import (
 )
 
 // ProviderFilter filters providers in queries
- type ProviderFilter struct {
+type ProviderFilter struct {
 	Adapter     string
 	Category    string
 	EnabledOnly bool
@@ -43,7 +43,7 @@ func (d *DB) GetProviders(filter ProviderFilter) ([]Provider, error) {
 		args = append(args, filter.Category)
 	}
 
-	query := "SELECT id, name, category, page_url, adapter, endpoint, tier, enabled, notes FROM providers"
+	query := "SELECT id, name, category, page_url, adapter, COALESCE(endpoint, ''), COALESCE(tier, 4), enabled, COALESCE(notes, '') FROM providers"
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
@@ -55,31 +55,23 @@ func (d *DB) GetProviders(filter ProviderFilter) ([]Provider, error) {
 	}
 	defer rows.Close()
 
-	var providers []Provider
-	for rows.Next() {
-		var p Provider
-		var enabledInt int
-		if err := rows.Scan(&p.ID, &p.Name, &p.Category, &p.PageURL, &p.Adapter, &p.Endpoint, &p.Tier, &enabledInt, &p.Notes); err != nil {
-			return nil, fmt.Errorf("failed to scan provider: %w", err)
-		}
-		p.Enabled = enabledInt == 1
-		providers = append(providers, p)
-	}
-	return providers, nil
+	return scanProviders(rows)
 }
 
 // GetProvider returns a single provider by ID
 func (d *DB) GetProvider(id string) (*Provider, error) {
 	var p Provider
 	var enabledInt int
+	var notes sql.NullString
 	err := d.QueryRow(`
-		SELECT id, name, category, page_url, adapter, endpoint, tier, enabled, notes
+		SELECT id, name, category, page_url, adapter, COALESCE(endpoint, ''), COALESCE(tier, 4), enabled, COALESCE(notes, '')
 		FROM providers WHERE id = ?
-	`, id).Scan(&p.ID, &p.Name, &p.Category, &p.PageURL, &p.Adapter, &p.Endpoint, &p.Tier, &enabledInt, &p.Notes)
+	`, id).Scan(&p.ID, &p.Name, &p.Category, &p.PageURL, &p.Adapter, &p.Endpoint, &p.Tier, &enabledInt, &notes)
 	if err != nil {
 		return nil, err
 	}
 	p.Enabled = enabledInt == 1
+	p.Notes = notes.String
 	return &p, nil
 }
 
@@ -104,6 +96,8 @@ func (d *DB) UpsertIncident(i Incident) error {
 	if i.FirstSeen == "" {
 		i.FirstSeen = now
 	}
+
+	i.Status = strings.ToLower(strings.TrimSpace(i.Status))
 
 	// Store NULL for resolved_at if it's empty or zero time
 	var resolvedAt interface{}
@@ -190,7 +184,8 @@ func (d *DB) SearchIncidents(query string, limit int) ([]Incident, error) {
 	}
 
 	rows, err := d.Query(`
-		SELECT i.provider_id, i.ext_id, i.title, i.impact, i.status, i.started_at, i.resolved_at, i.url, i.body, i.raw_json
+		SELECT i.provider_id, i.ext_id, i.title, i.impact, i.status, i.started_at, i.resolved_at,
+		       i.url, i.body, i.raw_json, i.first_seen, i.last_seen
 		FROM incidents i
 		JOIN incidents_fts f ON i.rowid = f.rowid
 		WHERE incidents_fts MATCH ?
@@ -202,15 +197,21 @@ func (d *DB) SearchIncidents(query string, limit int) ([]Incident, error) {
 	}
 	defer rows.Close()
 
-	return scanIncidents(rows)
+	return ScanIncidents(rows)
 }
 
-// GetOpenIncidents returns all non-resolved incidents
+// GetOpenIncidents returns all incidents that are still active.
+//
+// Two independent signals close an incident, and both must be checked: some
+// providers stamp a resolution timestamp, others only flip the status text.
+// Keying off resolved_at alone left every "resolved" incident from those
+// providers permanently in the active list.
 func (d *DB) GetOpenIncidents() ([]Incident, error) {
 	rows, err := d.Query(`
 		SELECT provider_id, ext_id, title, impact, status, started_at, resolved_at, url, body, raw_json, first_seen, last_seen
-		FROM incidents 
-		WHERE resolved_at IS NULL OR resolved_at = '' OR resolved_at = '0001-01-01T00:00:00Z'
+		FROM incidents
+		WHERE (resolved_at IS NULL OR resolved_at = '' OR resolved_at = '0001-01-01T00:00:00Z')
+		  AND LOWER(COALESCE(status, '')) NOT IN ('resolved', 'closed', 'completed', 'postmortem')
 		ORDER BY started_at DESC
 	`)
 	if err != nil {
@@ -218,39 +219,81 @@ func (d *DB) GetOpenIncidents() ([]Incident, error) {
 	}
 	defer rows.Close()
 
-	return scanIncidents(rows)
+	return ScanIncidents(rows)
 }
 
-// GetOutages returns providers with non-operational indicators
-func (d *DB) GetOutages() ([]Provider, error) {
-	// Get providers with recent non-ok checks
-	var providers []Provider
+// GetOutages returns providers whose most recent check is non-operational.
+//
+// "Most recent" has to be computed per endpoint: a single LIMIT 1 over the
+// whole checks table (as this once did) returns one row for the entire fleet,
+// so at most one provider could ever be reported as down.
+func (d *DB) GetOutages(within time.Duration) ([]Provider, error) {
+	// checks.ts is stored as RFC3339, so the cutoff is formatted the same way.
+	// Comparing against SQLite's datetime() output would compare 'T' to ' '
+	// and silently match anything from the same calendar day onward.
+	cutoff := time.Now().UTC().Add(-within).Format(time.RFC3339)
+
 	rows, err := d.Query(`
-		SELECT DISTINCT p.id, p.name, p.category, p.page_url, p.adapter, p.endpoint, p.tier, p.enabled, p.notes
+		SELECT p.id, p.name, p.category, p.page_url, p.adapter, COALESCE(p.endpoint, ''), COALESCE(p.tier, 4), p.enabled, COALESCE(p.notes, '')
 		FROM providers p
 		JOIN (
-			SELECT endpoint, indicator FROM checks
-			WHERE ts >= datetime('now', '-15 minutes') AND ok = 0
-			ORDER BY ts DESC LIMIT 1
+			SELECT c.endpoint, c.indicator, c.ok
+			FROM checks c
+			JOIN (
+				SELECT endpoint, MAX(ts) AS ts FROM checks WHERE ts >= ? GROUP BY endpoint
+			) latest ON latest.endpoint = c.endpoint AND latest.ts = c.ts
 		) c ON p.endpoint = c.endpoint
 		WHERE p.enabled = 1
+		  AND (c.ok = 0 OR c.indicator NOT IN ('none', 'operational'))
 		ORDER BY p.tier ASC, p.name ASC
-	`)
+	`, cutoff)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query outages: %w", err)
 	}
 	defer rows.Close()
 
-	for rows.Next() {
-		var p Provider
-		var enabledInt int
-		if err := rows.Scan(&p.ID, &p.Name, &p.Category, &p.PageURL, &p.Adapter, &p.Endpoint, &p.Tier, &enabledInt, &p.Notes); err != nil {
-			return nil, fmt.Errorf("failed to scan provider: %w", err)
-		}
-		p.Enabled = enabledInt == 1
-		providers = append(providers, p)
+	return scanProviders(rows)
+}
+
+// LatestCheck is the most recent check recorded for an endpoint.
+type LatestCheck struct {
+	TS        string
+	Indicator string
+	LatencyMS int
+	HTTPCode  int
+	OK        bool
+	Err       string
+}
+
+// GetLatestChecks returns the most recent check for every endpoint, keyed by
+// endpoint. Callers that need status for many providers use this instead of
+// issuing one "ORDER BY ts DESC LIMIT 1" query per provider.
+func (d *DB) GetLatestChecks() (map[string]LatestCheck, error) {
+	rows, err := d.Query(`
+		SELECT c.endpoint, c.ts, COALESCE(c.indicator, ''), COALESCE(c.latency_ms, 0),
+		       COALESCE(c.http_code, 0), COALESCE(c.ok, 0), COALESCE(c.err, '')
+		FROM checks c
+		JOIN (
+			SELECT endpoint, MAX(ts) AS ts FROM checks GROUP BY endpoint
+		) latest ON latest.endpoint = c.endpoint AND latest.ts = c.ts
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query latest checks: %w", err)
 	}
-	return providers, nil
+	defer rows.Close()
+
+	out := make(map[string]LatestCheck)
+	for rows.Next() {
+		var endpoint string
+		var c LatestCheck
+		var okInt int
+		if err := rows.Scan(&endpoint, &c.TS, &c.Indicator, &c.LatencyMS, &c.HTTPCode, &okInt, &c.Err); err != nil {
+			return nil, fmt.Errorf("failed to scan check: %w", err)
+		}
+		c.OK = okInt == 1
+		out[endpoint] = c
+	}
+	return out, rows.Err()
 }
 
 // PruneOldChecks removes check records older than the specified duration
@@ -276,6 +319,43 @@ func (d *DB) PruneOldSnapshots(keep int) (int64, error) {
 	return result.RowsAffected()
 }
 
+// scanProviders scans provider rows into a slice.
+func scanProviders(rows *sql.Rows) ([]Provider, error) {
+	var providers []Provider
+	for rows.Next() {
+		var p Provider
+		var enabledInt int
+		var notes sql.NullString
+		if err := rows.Scan(&p.ID, &p.Name, &p.Category, &p.PageURL, &p.Adapter, &p.Endpoint, &p.Tier, &enabledInt, &notes); err != nil {
+			return nil, fmt.Errorf("failed to scan provider: %w", err)
+		}
+		p.Enabled = enabledInt == 1
+		p.Notes = notes.String
+		providers = append(providers, p)
+	}
+	return providers, rows.Err()
+}
+
+// PruneResolvedIncidents deletes resolved incidents last seen before the
+// cutoff. Without this, every incident an upstream summary has ever listed
+// accumulates forever - the feeds return recent history on every poll, not
+// just what is currently active.
+func (d *DB) PruneResolvedIncidents(maxAge time.Duration) (int64, error) {
+	cutoff := time.Now().UTC().Add(-maxAge).Format(time.RFC3339)
+	result, err := d.Exec(`
+		DELETE FROM incidents
+		WHERE last_seen < ?
+		  AND (
+		    (resolved_at IS NOT NULL AND resolved_at != '' AND resolved_at != '0001-01-01T00:00:00Z')
+		    OR LOWER(COALESCE(status, '')) IN ('resolved', 'closed', 'completed', 'postmortem')
+		  )
+	`, cutoff)
+	if err != nil {
+		return 0, fmt.Errorf("failed to prune resolved incidents: %w", err)
+	}
+	return result.RowsAffected()
+}
+
 // Helper function to convert bool to int
 func boolToInt(b bool) int {
 	if b {
@@ -284,9 +364,9 @@ func boolToInt(b bool) int {
 	return 0
 }
 
-// scanIncidents scans rows into incidents
-// This function handles the standard incident columns: 12 fields
-func scanIncidents(rows *sql.Rows) ([]Incident, error) {
+// ScanIncidents scans rows into incidents.
+// Callers must select the 12 incident columns in schema order.
+func ScanIncidents(rows *sql.Rows) ([]Incident, error) {
 	var incidents []Incident
 	for rows.Next() {
 		var i Incident
@@ -311,5 +391,5 @@ func scanIncidents(rows *sql.Rows) ([]Incident, error) {
 		}
 		incidents = append(incidents, i)
 	}
-	return incidents, nil
+	return incidents, rows.Err()
 }

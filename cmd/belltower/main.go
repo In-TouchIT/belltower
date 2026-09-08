@@ -2,11 +2,15 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -22,9 +26,9 @@ var rootCmd = &cobra.Command{
 	Use:   "belltower",
 	Short: "Belltower - Status Page Monitor",
 	Long: `Belltower aggregates vendor status pages into a single dashboard and API.
-It polls 218 unique endpoints every 10 minutes and provides both a web dashboard
-and an API for integration with other tools.`,
-	Run: runServer,
+It polls vendor status endpoints on an interval and provides both a web
+dashboard and an API for integration with other tools.`,
+	RunE: runServer,
 }
 
 func init() {
@@ -38,15 +42,70 @@ func init() {
 	rootCmd.Flags().Int("concurrency", 20, "Number of concurrent polling workers")
 	rootCmd.Flags().String("user-agent", "belltower/1.0 (status monitoring; contact@intouchit.com)", "User-Agent header for outgoing requests")
 
-	viper.BindPFlags(rootCmd.Flags())
+	if err := viper.BindPFlags(rootCmd.Flags()); err != nil {
+		log.Fatalf("Failed to bind flags: %v", err)
+	}
 }
 
 func initConfig() {
 	viper.SetEnvPrefix("BELLTOWER")
+	// Flag names use dashes; environment variables use underscores. Without
+	// this replacer viper looks up BELLTOWER_POLL-INTERVAL, which nothing can
+	// set, so every hyphenated env var was silently ignored.
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
 }
 
-func runServer(cmd *cobra.Command, args []string) {
+// healthCmd lets the container health check run without curl, which does not
+// exist in the scratch image the Dockerfile builds.
+var healthCmd = &cobra.Command{
+	Use:   "healthcheck",
+	Short: "Probe the local /api/v1/health endpoint and exit non-zero if unhealthy",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// The root command's --addr is a local flag, so it is not inherited
+		// here; healthcheck declares its own and falls back to the shared
+		// viper value (and thus BELLTOWER_ADDR) when it is not given.
+		addr, err := cmd.Flags().GetString("addr")
+		if err != nil {
+			return err
+		}
+		if addr == "" {
+			addr = viper.GetString("addr")
+		}
+		if addr == "" {
+			addr = ":8088"
+		}
+
+		client := &http.Client{Timeout: 5 * time.Second}
+		resp, err := client.Get("http://" + healthTarget(addr) + "/api/v1/health")
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("health check returned %d", resp.StatusCode)
+		}
+		return nil
+	},
+}
+
+// healthTarget turns a listen address into something dialable. A server bound
+// to ":8088" or "0.0.0.0:8088" is reached over the loopback interface.
+func healthTarget(addr string) string {
+	host, port, found := strings.Cut(addr, ":")
+	if !found {
+		return net.JoinHostPort(addr, "8088")
+	}
+	if host == "" || host == "0.0.0.0" || host == "[::]" || host == "::" {
+		host = "127.0.0.1"
+	}
+	if port == "" {
+		port = "8088"
+	}
+	return net.JoinHostPort(host, port)
+}
+
+func runServer(cmd *cobra.Command, args []string) error {
 	dbPath := viper.GetString("db-path")
 	providersFile := viper.GetString("providers-file")
 	addr := viper.GetString("addr")
@@ -55,31 +114,47 @@ func runServer(cmd *cobra.Command, args []string) {
 	concurrency := viper.GetInt("concurrency")
 	userAgent := viper.GetString("user-agent")
 
-	// Ensure data directory exists
-	dataDir := "./data"
-	if err := os.MkdirAll(dataDir, 0755); err != nil {
-		log.Fatalf("Failed to create data directory: %v", err)
+	// Create the directory the database actually lives in, not a hardcoded
+	// ./data that may have nothing to do with --db-path.
+	if dir := filepath.Dir(dbPath); dir != "" && dir != "." {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return fmt.Errorf("failed to create database directory %s: %w", dir, err)
+		}
 	}
 
-	// Open database
 	dsn := fmt.Sprintf("file:%s?_journal_mode=WAL&_busy_timeout=5000&_sync=normal", dbPath)
 	db, err := store.Open(dsn)
 	if err != nil {
-		log.Fatalf("Failed to open database: %v", err)
+		return fmt.Errorf("failed to open database: %w", err)
 	}
 	defer db.Close()
-	fmt.Printf("Database opened at: %s\n", dbPath)
+	log.Printf("Database opened at: %s", dbPath)
 
-	// Load providers from YAML and populate database
-	providerInfos, err := adapters.LoadProvidersFromYAML(providersFile)
+	providerConfigs, err := adapters.LoadProvidersFromYAML(providersFile)
 	if err != nil {
-		log.Fatalf("Failed to load providers: %v", err)
+		return fmt.Errorf("failed to load providers: %w", err)
 	}
-	fmt.Printf("Loaded %d providers from %s\n", len(providerInfos), providersFile)
 
-	// Upsert providers into database
-	for _, p := range providerInfos {
-		provider := store.Provider{
+	registry := adapters.NewRegistry(userAgent, pollTimeout)
+	known := make(map[string]bool)
+	for _, name := range registry.ListAdapters() {
+		known[name] = true
+	}
+
+	enabled := 0
+	for _, p := range providerConfigs {
+		// A provider referencing an adapter we do not implement is recorded
+		// but never polled, rather than failing every cycle.
+		isEnabled := p.Enabled
+		if isEnabled && p.Adapter != "manual" && !known[p.Adapter] {
+			log.Printf("Warning: provider %s references unknown adapter %q; disabling", p.ID, p.Adapter)
+			isEnabled = false
+		}
+		if isEnabled {
+			enabled++
+		}
+
+		if saveErr := db.UpsertProvider(store.Provider{
 			ID:       p.ID,
 			Name:     p.Name,
 			Category: p.Category,
@@ -87,77 +162,75 @@ func runServer(cmd *cobra.Command, args []string) {
 			Adapter:  p.Adapter,
 			Endpoint: p.Endpoint,
 			Tier:     p.Tier,
-			Enabled:  true,
-		}
-		if saveErr := db.UpsertProvider(provider); saveErr != nil {
+			Enabled:  isEnabled,
+			Notes:    p.Notes,
+		}); saveErr != nil {
 			log.Printf("Warning: failed to upsert provider %s: %v", p.ID, saveErr)
 		}
 	}
+	log.Printf("Loaded %d providers from %s (%d enabled)", len(providerConfigs), providersFile, enabled)
+	log.Printf("Registered adapters: %v", registry.ListAdapters())
 
-	// Initialize adapter registry
-	registry := adapters.NewRegistry(userAgent, pollTimeout)
-	fmt.Printf("Registered adapters: %v\n", registry.ListAdapters())
+	server := api.NewServer(db, api.Config{Addr: addr})
 
-	// Initialize API server first (needed for snapshot refresh callback)
-	serverCfg := api.Config{
-		Addr:      addr,
-		UserAgent: userAgent,
-	}
-	server := api.NewServer(db, registry, serverCfg)
-
-	// Initialize poller
-	pollerCfg := poller.Config{
+	pollr := poller.New(db, registry, poller.Config{
 		Interval:    pollInterval,
 		Timeout:     pollTimeout,
 		Concurrency: concurrency,
 		UserAgent:   userAgent,
-	}
-	pollr := poller.New(db, registry, pollerCfg)
-
-	// Wire up snapshot refresh callback
+	})
 	pollr.SnapshotRefresh = func() error {
 		return server.RefreshSnapshot(context.Background())
 	}
 
-	// Start poller in background
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	go pollr.Run(ctx)
 
-	// Start HTTP server
 	httpServer := &http.Server{
 		Addr:    addr,
 		Handler: server.Routes(),
+		// Without these a single slow client can hold a connection open
+		// indefinitely.
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
-	// Graceful shutdown
+	serverErr := make(chan error, 1)
 	go func() {
-		fmt.Printf("Belltower listening on %s\n", addr)
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server error: %v", err)
+		log.Printf("Belltower listening on %s", addr)
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverErr <- err
 		}
 	}()
 
-	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	fmt.Println("\nShutting down...")
 
-	// Shutdown gracefully
+	select {
+	case err := <-serverErr:
+		return fmt.Errorf("server error: %w", err)
+	case <-quit:
+		log.Println("Shutting down...")
+	}
+
 	cancel()
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer shutdownCancel()
 	if err := httpServer.Shutdown(shutdownCtx); err != nil {
 		log.Printf("Server shutdown error: %v", err)
 	}
-	fmt.Println("Belltower stopped")
+	log.Println("Belltower stopped")
+	return nil
 }
 
 func main() {
+	healthCmd.Flags().String("addr", "", "Address of the running server (defaults to BELLTOWER_ADDR, else :8088)")
+	rootCmd.AddCommand(healthCmd)
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 }

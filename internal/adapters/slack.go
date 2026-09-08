@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 )
 
@@ -15,20 +14,22 @@ type SlackAdapter struct {
 	ua     string
 }
 
+const slackCurrentURL = "https://slack-status.com/api/v2.0.0/current"
+
 type SlackResponse struct {
-	ActiveIncidents []SlackIncident `json:"active_incidents"`
+	ActiveIncidents   []SlackIncident `json:"active_incidents"`
 	ActiveMaintenance []SlackIncident `json:"active_maintenance"`
 }
 
 type SlackIncident struct {
-	ID        string `json:"id"`
-	Title     string `json:"title"`
-	Body      string `json:"body"`
-	Status    string `json:"status"`
-	Severity  string `json:"severity"`
-	StartedAt string `json:"started_at"`
-	EndAt     string `json:"end_at"`
-	URL       string `json:"url"`
+	ID        json.Number `json:"id"`
+	Title     string      `json:"title"`
+	Body      string      `json:"body"`
+	Status    string      `json:"status"`
+	Severity  string      `json:"severity"`
+	StartedAt string      `json:"started_at"`
+	EndAt     string      `json:"end_at"`
+	URL       string      `json:"url"`
 }
 
 func NewSlackAdapter(client *http.Client, ua string) *SlackAdapter {
@@ -36,63 +37,54 @@ func NewSlackAdapter(client *http.Client, ua string) *SlackAdapter {
 }
 
 func (a *SlackAdapter) Fetch(ctx context.Context, p ProviderInfo) (Result, error) {
-	data, err := a.fetch(ctx, "https://slack-status.com/api/v2.0.0/current")
-	if err != nil {
-		return Result{}, err
+	endpoint := p.Endpoint
+	if endpoint == "" {
+		endpoint = slackCurrentURL
 	}
+
+	httpResp, err := httpGet(ctx, a.client, a.ua, endpoint, "application/json")
+	if err != nil {
+		return Result{HTTPStatus: httpResp.StatusCode}, err
+	}
+	data := httpResp.Body
 
 	var resp SlackResponse
 	if err := json.Unmarshal(data, &resp); err != nil {
-		return Result{}, fmt.Errorf("failed to parse Slack response: %w", err)
+		return Result{HTTPStatus: httpResp.StatusCode}, fmt.Errorf("failed to parse Slack response: %w", err)
 	}
 
 	result := Result{
-		Indicator: IndicatorNone,
+		Indicator:  IndicatorNone,
+		HTTPStatus: httpResp.StatusCode,
 	}
 
 	for _, inc := range resp.ActiveIncidents {
 		result.Indicator = IndicatorMajor
 		result.Incidents = append(result.Incidents, Incident{
-			ExtID:      inc.ID,
-			Title:      inc.Title,
-			Body:        inc.Body,
-			Status:     "open",
-			Impact:     inc.Severity,
-			StartedAt:  parseTime(inc.StartedAt),
-			URL:        inc.URL,
-			RawJSON:    string(data),
+			ExtID:     inc.ID.String(),
+			Title:     inc.Title,
+			Body:      inc.Body,
+			Status:    StatusOpen,
+			Impact:    inc.Severity,
+			StartedAt: parseTime(inc.StartedAt),
+			URL:       inc.URL,
+			RawJSON:   string(data),
 		})
 	}
 
 	for _, inc := range resp.ActiveMaintenance {
 		result.Indicator = IndicatorMaintenance
 		result.Incidents = append(result.Incidents, Incident{
-			ExtID:      inc.ID,
-			Title:      "MAINTENANCE: " + inc.Title,
-			Body:        inc.Body,
-			Status:     "maintenance",
-			Impact:     "maintenance",
-			StartedAt:  parseTime(inc.StartedAt),
-			URL:        inc.URL,
-			RawJSON:    string(data),
+			ExtID:     inc.ID.String(),
+			Title:     "MAINTENANCE: " + inc.Title,
+			Body:      inc.Body,
+			Status:    StatusMaintenance,
+			Impact:    "maintenance",
+			StartedAt: parseTime(inc.StartedAt),
+			URL:       inc.URL,
+			RawJSON:   string(data),
 		})
 	}
 
 	return result, nil
-}
-
-func (a *SlackAdapter) fetch(ctx context.Context, endpoint string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("User-Agent", a.ua)
-
-	resp, err := a.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	return io.ReadAll(resp.Body)
 }

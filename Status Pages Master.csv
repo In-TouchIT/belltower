@@ -16,8 +16,8 @@ IBM Cloud,https://cloud.ibm.com/status,IBM Cloud infrastructure/services,Cloud
 Microsoft Azure,https://azure.status.microsoft/en-us/status,"Azure compute, storage, networking, and platform services",Cloud
 Oracle Cloud,https://ocistatus.oraclecloud.com,OCI services by region,Cloud
 ColoBlxs,https://status.coloblox.com/,ColoBlxs data center and colocation services,Colocation
-Intuit Quickbooks,https://quickbooks.intuit.com/status,"QuickBooks, TurboTax, TaxAct, ProSeries",Financial SaaS
-Ramp,No dedicated status page available,Ramp physical/virtual cards and expense management,Financial SaaS
+Intuit Quickbooks,https://status.quickbooks.intuit.com/,"QuickBooks, TurboTax, TaxAct, ProSeries",Financial SaaS
+Ramp,No dedicated page,Ramp physical/virtual cards and expense management,Financial SaaS
 IRS,https://www.irs.gov,IRS e-Services and tax filing system availability,Government
 SSA,https://ssa.statuspage.io,Social Security Administration online services and portals,Government
 ConnectWise,https://status.connectwise.com,"ConnectWise Manage, Automate, Control, Sell",PSA
@@ -64,8 +64,8 @@ Wasabi,https://status.wasabi.com/,Wasabi hot cloud object storage by region,Back
 Keepit,https://status.keepit.com/,"Keepit SaaS backup for M365, Entra, Salesforce",Backup
 Afi.ai,https://afi.statuspage.io/,Afi backup for Microsoft 365 and Google Workspace,Backup
 Pax8,https://status.pax8.com/,"Pax8 marketplace, provisioning, and billing",Distribution
-Hudu,No dedicated status page available,Hudu IT documentation platform,Documentation
-IT Glue,No public status page (page retired),IT Glue documentation platform,Documentation
+Hudu,No official public status page found,Hudu IT documentation platform,Documentation
+IT Glue,https://status.kaseya.com/,"IT Glue status page retired - see Kaseya status (https://status.kaseya.com/) instead",Documentation
 Rewst,https://status.rewst.io/,Rewst automation platform and CRUs,Automation
 Auvik,https://status.auvik.com/,"Auvik network monitoring, collectors, and SaaS management",Network Monitoring
 Liongard,https://status.liongard.com/,Liongard inspectors and Roar platform,Network Monitoring
@@ -88,7 +88,7 @@ SentinelOne,https://status.sentinelone.com/,SentinelOne Singularity console and 
 CrowdStrike,https://supportportal.crowdstrike.com/s/status,Falcon platform (customer portal login required),Security
 Huntress,https://status.huntress.io/,"Huntress EDR, MDR for M365, SIEM, and portal",Security
 ThreatLocker,https://threatlocker.statuspage.io/,"ThreatLocker portal, agents, Ringfencing, Detect",Security
-Blackpoint Cyber,No public status page (page retired),Blackpoint SNAP-Defense MDR,Security
+Blackpoint Cyber,No official public status page found,Blackpoint SNAP-Defense MDR,Security
 Arctic Wolf,https://status.arcticwolf.com/,Arctic Wolf Concierge Security Platform,Security
 Bitdefender GravityZone,https://status.gravityzone.bitdefender.com/,GravityZone console and cloud services,Security
 ESET,https://status.eset.com/,"ESET PROTECT Cloud, LiveGuard, licensing",Security
@@ -184,7 +184,7 @@ GoDaddy,https://status.godaddy.com/,"GoDaddy domains, DNS, hosting, email",Domai
 Namecheap,https://www.namecheap.com/status-updates/,"Namecheap domains, DNS, hosting",Domains/DNS
 DigiCert,https://status.digicert.com/,"DigiCert CertCentral, OCSP, CRL",Domains/DNS
 Let's Encrypt,https://letsencrypt.status.io/,"ACME API, OCSP, issuance",Domains/DNS
-SendGrid,https://status.twilio.com/,SendGrid email delivery (under Twilio),Email
+SendGrid,https://status.sendgrid.com/,SendGrid email delivery,Email
 Mailgun,https://status.mailgun.com/,Mailgun sending and inbound routing,Email
 Postmark,https://status.postmarkapp.com/,Postmark transactional email,Email
 Mailchimp,https://status.mailchimp.com/,"Mailchimp campaigns, automations, API",Email

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 )
@@ -21,8 +20,8 @@ type InstatusResponse struct {
 		Name string `json:"name"`
 		URL  string `json:"url"`
 	} `json:"page"`
-	Status  string `json:"status"`
-	Incidents []InstatusIncident `json:"incidents"`
+	Status     string              `json:"status"`
+	Incidents  []InstatusIncident  `json:"incidents"`
 	Components []InstatusComponent `json:"components"`
 }
 
@@ -38,9 +37,9 @@ type InstatusIncident struct {
 }
 
 type InstatusComponent struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Status string `json:"status"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Status  string `json:"status"`
 	Updated string `json:"updated_at"`
 }
 
@@ -59,31 +58,38 @@ func (a *InstatusAdapter) Fetch(ctx context.Context, p ProviderInfo) (Result, er
 		endpoint = base + "/summary.json"
 	}
 
-	data, err := a.fetch(ctx, endpoint)
+	httpResp, err := httpGet(ctx, a.client, a.ua, endpoint, "application/json")
 	if err != nil {
-		return Result{}, err
+		return Result{HTTPStatus: httpResp.StatusCode}, err
 	}
+	data := httpResp.Body
 
 	var resp InstatusResponse
 	if err := json.Unmarshal(data, &resp); err != nil {
-		return Result{}, fmt.Errorf("failed to parse Instatus response: %w", err)
+		return Result{HTTPStatus: httpResp.StatusCode}, fmt.Errorf("failed to parse Instatus response: %w", err)
 	}
 
 	result := Result{
-		Indicator: a.mapIndicator(resp.Status),
+		Indicator:  a.mapIndicator(resp.Status),
+		HTTPStatus: httpResp.StatusCode,
 	}
 
 	for _, inc := range resp.Incidents {
+		status := NormalizeIncidentStatus(inc.Status)
+		resolvedAt := parseTime(inc.EndedAt)
+		if !resolvedAt.IsZero() {
+			status = StatusResolved
+		}
 		result.Incidents = append(result.Incidents, Incident{
-			ExtID:     inc.ID,
-			Title:     inc.Name,
-			Body:      inc.Body,
-			Status:    inc.Status,
-			Impact:    inc.Impact,
-			StartedAt: parseTime(inc.StartedAt),
-			ResolvedAt: parseTime(inc.EndedAt),
-			URL:       inc.URL,
-			RawJSON:   string(data),
+			ExtID:      inc.ID,
+			Title:      inc.Name,
+			Body:       inc.Body,
+			Status:     status,
+			Impact:     inc.Impact,
+			StartedAt:  parseTime(inc.StartedAt),
+			ResolvedAt: resolvedAt,
+			URL:        inc.URL,
+			RawJSON:    string(data),
 		})
 	}
 
@@ -96,23 +102,6 @@ func (a *InstatusAdapter) Fetch(ctx context.Context, p ProviderInfo) (Result, er
 	}
 
 	return result, nil
-}
-
-func (a *InstatusAdapter) fetch(ctx context.Context, endpoint string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("User-Agent", a.ua)
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := a.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	return io.ReadAll(resp.Body)
 }
 
 func (a *InstatusAdapter) mapIndicator(status string) Indicator {

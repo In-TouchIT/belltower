@@ -9,21 +9,24 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"log"
 	"net/http"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/ccarson/belltower/internal/adapters"
 	"github.com/ccarson/belltower/internal/store"
 )
 
 // Server is the HTTP server for the status page monitor
 type Server struct {
-	db       *store.DB
-	registry *adapters.Registry
-	addr     string
-	
+	db   *store.DB
+	addr string
+
+	dashboard *template.Template
+
 	mu       sync.RWMutex
 	snapshot *snapshotCache
 }
@@ -37,25 +40,23 @@ type snapshotCache struct {
 
 // Config holds server configuration
 type Config struct {
-	Addr      string
-	UserAgent string
+	Addr string
 }
 
-// NewServer creates a new API server
-func NewServer(db *store.DB, registry *adapters.Registry, cfg Config) *Server {
-	s := &Server{
-		db:       db,
-		registry: registry,
-		addr:     cfg.Addr,
+// NewServer creates a new API server.
+// The dashboard template is parsed once here rather than per request.
+func NewServer(db *store.DB, cfg Config) *Server {
+	return &Server{
+		db:        db,
+		addr:      cfg.Addr,
+		dashboard: template.Must(template.New("dashboard").Parse(dashboardTemplate)),
 	}
-	return s
 }
 
 // Routes sets up all HTTP routes
 func (s *Server) Routes() http.Handler {
 	mux := http.NewServeMux()
 
-	// API routes
 	mux.HandleFunc("/api/v1/snapshot", s.handleSnapshot)
 	mux.HandleFunc("/api/v1/outages", s.handleOutages)
 	mux.HandleFunc("/api/v1/providers", s.handleProviders)
@@ -66,10 +67,24 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/openapi.json", s.handleOpenAPI)
 	mux.HandleFunc("/metrics", s.handleMetrics)
 
-	// Dashboard
-	mux.Handle("/", http.HandlerFunc(s.handleDashboard))
+	// "/" is a catch-all in net/http, so unknown paths must be rejected
+	// explicitly - otherwise every typo returns the dashboard with a 200.
+	mux.HandleFunc("/", s.handleDashboard)
 
 	return mux
+}
+
+// writeJSON encodes v as JSON with the correct content type.
+func writeJSON(w http.ResponseWriter, status int, v interface{}) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Printf("failed to write JSON response: %v", err)
+	}
+}
+
+func writeJSONError(w http.ResponseWriter, status int, msg string) {
+	writeJSON(w, status, map[string]string{"error": msg})
 }
 
 // handleSnapshot serves the precomputed snapshot (memory read, no queries)
@@ -86,93 +101,124 @@ func (s *Server) handleSnapshot(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if snap == nil {
-		http.Error(w, "no snapshot available", http.StatusServiceUnavailable)
+		writeJSONError(w, http.StatusServiceUnavailable, "no snapshot available")
 		return
 	}
 
-	// ETag handling for caching
-	etag := snap.etag
-	if r.Header.Get("If-None-Match") == etag {
+	w.Header().Set("ETag", snap.etag)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Vary", "Accept-Encoding")
+
+	if match := r.Header.Get("If-None-Match"); match != "" && etagMatches(match, snap.etag) {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 
-	w.Header().Set("ETag", etag)
-	w.Header().Set("Content-Type", "application/json")
-
-	// GZIP compression
 	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 		w.Header().Set("Content-Encoding", "gzip")
-		w.Header().Set("Vary", "Accept-Encoding")
 		gz := gzip.NewWriter(w)
+		defer gz.Close()
 		if _, err := gz.Write(snap.data); err != nil {
-			http.Error(w, "failed to compress snapshot", http.StatusInternalServerError)
-			return
-		}
-		if err := gz.Close(); err != nil {
-			http.Error(w, "failed to finalize compression", http.StatusInternalServerError)
-			return
+			log.Printf("failed to write gzipped snapshot: %v", err)
 		}
 		return
 	}
 
-	w.Write(snap.data)
+	if _, err := w.Write(snap.data); err != nil {
+		log.Printf("failed to write snapshot: %v", err)
+	}
 }
 
-// handleOutages returns only non-operational providers
+// etagMatches implements If-None-Match, which may carry a comma-separated list.
+func etagMatches(header, etag string) bool {
+	for _, candidate := range strings.Split(header, ",") {
+		candidate = strings.TrimSpace(candidate)
+		if candidate == "*" || candidate == etag {
+			return true
+		}
+	}
+	return false
+}
+
+// handleOutages returns providers whose most recent check is non-operational.
 func (s *Server) handleOutages(w http.ResponseWriter, r *http.Request) {
+	window := 30 * time.Minute
+	if raw := r.URL.Query().Get("within"); raw != "" {
+		parsed, err := time.ParseDuration(raw)
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, "invalid 'within' duration: "+raw)
+			return
+		}
+		window = parsed
+	}
 	category := r.URL.Query().Get("category")
-	providerList, err := s.db.GetProviders(store.ProviderFilter{
-		Category:    category,
-		EnabledOnly: true,
-	})
+
+	providers, err := s.db.GetOutages(window)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	// Filter to only non-operational
-	var outages []map[string]interface{}
-	for _, p := range providerList {
-		if p.Endpoint == "" {
-			continue
-		}
-		
-		var check store.Check
-		err := s.db.QueryRow(`
-			SELECT indicator, ok FROM checks 
-			WHERE endpoint = ? 
-			ORDER BY ts DESC LIMIT 1
-		`, p.Endpoint).Scan(&check.Indicator, &check.OK)
-		
-		if err == nil && !check.OK {
-			outages = append(outages, map[string]interface{}{
-				"provider":     p.Name,
-				"category":     p.Category,
-				"adapter":      p.Adapter,
-				"indicator":    check.Indicator,
-				"endpoint":     p.Endpoint,
-				"page_url":     p.PageURL,
-			})
-		}
+	latest, err := s.db.GetLatestChecks()
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
-	json.NewEncoder(w).Encode(outages)
+	type outage struct {
+		ID        string `json:"id"`
+		Provider  string `json:"provider"`
+		Category  string `json:"category"`
+		Adapter   string `json:"adapter"`
+		Indicator string `json:"indicator"`
+		Reachable bool   `json:"reachable"`
+		Tier      int    `json:"tier"`
+		Endpoint  string `json:"endpoint"`
+		PageURL   string `json:"page_url"`
+		LastCheck string `json:"last_check,omitempty"`
+		Error     string `json:"error,omitempty"`
+	}
+
+	outages := []outage{}
+	for _, p := range providers {
+		if category != "" && p.Category != category {
+			continue
+		}
+		check := latest[p.Endpoint]
+		outages = append(outages, outage{
+			ID:        p.ID,
+			Provider:  p.Name,
+			Category:  p.Category,
+			Adapter:   p.Adapter,
+			Indicator: check.Indicator,
+			Reachable: check.OK,
+			Tier:      p.Tier,
+			Endpoint:  p.Endpoint,
+			PageURL:   p.PageURL,
+			LastCheck: check.TS,
+			Error:     check.Err,
+		})
+	}
+
+	writeJSON(w, http.StatusOK, outages)
 }
 
 // handleProviders returns the full provider inventory
 func (s *Server) handleProviders(w http.ResponseWriter, r *http.Request) {
-	adapterFilter := r.URL.Query().Get("adapter")
-	category := r.URL.Query().Get("category")
-	enabledOnly := r.URL.Query().Get("enabled_only") == "true"
-
 	providers, err := s.db.GetProviders(store.ProviderFilter{
-		Adapter:     adapterFilter,
-		Category:    category,
-		EnabledOnly: enabledOnly,
+		Adapter:     r.URL.Query().Get("adapter"),
+		Category:    r.URL.Query().Get("category"),
+		EnabledOnly: r.URL.Query().Get("enabled_only") == "true",
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// One query for all latest checks instead of one per provider.
+	latest, err := s.db.GetLatestChecks()
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -186,11 +232,12 @@ func (s *Server) handleProviders(w http.ResponseWriter, r *http.Request) {
 		PageURL   string `json:"page_url,omitempty"`
 		Endpoint  string `json:"endpoint,omitempty"`
 		Indicator string `json:"indicator,omitempty"`
+		Reachable bool   `json:"reachable"`
 		LastCheck string `json:"last_check,omitempty"`
 		Notes     string `json:"notes,omitempty"`
 	}
 
-	var resp []providerResponse
+	resp := make([]providerResponse, 0, len(providers))
 	for _, p := range providers {
 		pr := providerResponse{
 			ID:       p.ID,
@@ -203,344 +250,458 @@ func (s *Server) handleProviders(w http.ResponseWriter, r *http.Request) {
 			Endpoint: p.Endpoint,
 			Notes:    p.Notes,
 		}
-
-		if p.Endpoint != "" {
-			var indicator, lastCheck string
-			err := s.db.QueryRow(`
-				SELECT indicator, ts FROM checks 
-				WHERE endpoint = ? 
-				ORDER BY ts DESC LIMIT 1
-			`, p.Endpoint).Scan(&indicator, &lastCheck)
-			
-			if err == nil {
-				pr.Indicator = indicator
-				pr.LastCheck = lastCheck
-			}
+		if check, ok := latest[p.Endpoint]; ok && p.Endpoint != "" {
+			pr.Indicator = check.Indicator
+			pr.LastCheck = check.TS
+			pr.Reachable = check.OK
 		}
-
 		resp = append(resp, pr)
 	}
 
-	json.NewEncoder(w).Encode(resp)
+	writeJSON(w, http.StatusOK, resp)
 }
 
 // handleProvider returns details for a single provider
 func (s *Server) handleProvider(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimPrefix(r.URL.Path, "/api/v1/providers/")
-	
-	p, err := s.db.GetProvider(id)
-	if err != nil {
-		http.Error(w, "provider not found", http.StatusNotFound)
+	if id == "" {
+		writeJSONError(w, http.StatusBadRequest, "provider id required")
 		return
 	}
 
-	// Get latest check
-	var check store.Check
-	err = s.db.QueryRow(`
-		SELECT ts, http_code, latency_ms, indicator, ok, err 
-		FROM checks WHERE endpoint = ? 
-		ORDER BY ts DESC LIMIT 1
-	`, p.Endpoint).Scan(&check.TS, &check.HTTPCode, &check.LatencyMS, &check.Indicator, &check.OK, &check.Err)
+	p, err := s.db.GetProvider(id)
+	if err == sql.ErrNoRows {
+		writeJSONError(w, http.StatusNotFound, "provider not found")
+		return
+	}
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 
-	// Get open incidents
+	var check store.Check
+	if p.Endpoint != "" {
+		var okInt int
+		var errMsg sql.NullString
+		scanErr := s.db.QueryRow(`
+			SELECT ts, COALESCE(http_code, 0), COALESCE(latency_ms, 0), COALESCE(indicator, ''), COALESCE(ok, 0), err
+			FROM checks WHERE endpoint = ?
+			ORDER BY ts DESC LIMIT 1
+		`, p.Endpoint).Scan(&check.TS, &check.HTTPCode, &check.LatencyMS, &check.Indicator, &okInt, &errMsg)
+		if scanErr != nil && scanErr != sql.ErrNoRows {
+			writeJSONError(w, http.StatusInternalServerError, scanErr.Error())
+			return
+		}
+		check.OK = okInt == 1
+		check.Err = errMsg.String
+	}
+
 	openIncidents, err := s.db.GetOpenIncidents()
-	
-	// Filter to just this provider's incidents
-	var providerIncidents []store.Incident
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	providerIncidents := []store.Incident{}
 	for _, inc := range openIncidents {
 		if inc.ProviderID == p.ID {
 			providerIncidents = append(providerIncidents, inc)
 		}
 	}
 
-	// Get components
-	var components []store.Component
-	if p.Endpoint != "" {
-		rows, err := s.db.Query("SELECT name, status, updated_at FROM components WHERE provider_id = ? ORDER BY name", p.ID)
-		if err == nil {
-			defer rows.Close()
-			for rows.Next() {
-				var c store.Component
-				rows.Scan(&c.Name, &c.Status, &c.UpdatedAt)
-				components = append(components, c)
-			}
-		}
+	components, err := s.providerComponents(p.ID)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
-	// Get recent check history (last 24 hours)
-	type checkHistory struct {
-		TS       string `json:"ts"`
-		Indicator string `json:"indicator"`
-		LatencyMS int    `json:"latency_ms"`
-		OK       bool   `json:"ok"`
-	}
-	
-	var history []checkHistory
-	if p.Endpoint != "" {
-		rows, err := s.db.Query(`
-			SELECT ts, indicator, latency_ms, ok FROM checks 
-			WHERE endpoint = ? 
-			ORDER BY ts DESC LIMIT 100
-		`, p.Endpoint)
-		if err == nil {
-			defer rows.Close()
-			for rows.Next() {
-				var ch checkHistory
-				var okInt int
-				if err := rows.Scan(&ch.TS, &ch.Indicator, &ch.LatencyMS, &okInt); err == nil {
-					ch.OK = okInt == 1
-					history = append(history, ch)
-				}
-			}
-		}
+	history, err := s.checkHistory(p.Endpoint)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
-	response := map[string]interface{}{
-		"id":          p.ID,
-		"name":        p.Name,
-		"category":    p.Category,
-		"adapter":     p.Adapter,
-		"tier":        p.Tier,
-		"enabled":     p.Enabled,
-		"page_url":    p.PageURL,
-		"endpoint":    p.Endpoint,
-		"notes":       p.Notes,
-		"current":     check.Indicator,
-		"ok":          check.OK,
-		"last_check":  check.TS,
-		"incidents":   providerIncidents,
-		"components":  components,
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"id":            p.ID,
+		"name":          p.Name,
+		"category":      p.Category,
+		"adapter":       p.Adapter,
+		"tier":          p.Tier,
+		"enabled":       p.Enabled,
+		"page_url":      p.PageURL,
+		"endpoint":      p.Endpoint,
+		"notes":         p.Notes,
+		"indicator":     check.Indicator,
+		"reachable":     check.OK,
+		"last_check":    check.TS,
+		"last_error":    check.Err,
+		"incidents":     providerIncidents,
+		"components":    components,
 		"check_history": history,
+	})
+}
+
+func (s *Server) providerComponents(providerID string) ([]store.Component, error) {
+	rows, err := s.db.Query(`
+		SELECT name, COALESCE(status, ''), COALESCE(updated_at, '')
+		FROM components WHERE provider_id = ? ORDER BY name
+	`, providerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	components := []store.Component{}
+	for rows.Next() {
+		var c store.Component
+		if err := rows.Scan(&c.Name, &c.Status, &c.UpdatedAt); err != nil {
+			return nil, err
+		}
+		components = append(components, c)
+	}
+	return components, rows.Err()
+}
+
+type checkHistoryEntry struct {
+	TS        string `json:"ts"`
+	Indicator string `json:"indicator"`
+	LatencyMS int    `json:"latency_ms"`
+	OK        bool   `json:"ok"`
+}
+
+func (s *Server) checkHistory(endpoint string) ([]checkHistoryEntry, error) {
+	history := []checkHistoryEntry{}
+	if endpoint == "" {
+		return history, nil
 	}
 
-	json.NewEncoder(w).Encode(response)
+	rows, err := s.db.Query(`
+		SELECT ts, COALESCE(indicator, ''), COALESCE(latency_ms, 0), COALESCE(ok, 0)
+		FROM checks WHERE endpoint = ?
+		ORDER BY ts DESC LIMIT 100
+	`, endpoint)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var e checkHistoryEntry
+		var okInt int
+		if err := rows.Scan(&e.TS, &e.Indicator, &e.LatencyMS, &okInt); err != nil {
+			return nil, err
+		}
+		e.OK = okInt == 1
+		history = append(history, e)
+	}
+	return history, rows.Err()
 }
 
 // handleIncidents returns incidents with search capability
 func (s *Server) handleIncidents(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query().Get("q")
-	since := r.URL.Query().Get("since")
-	impact := r.URL.Query().Get("impact")
-	status := r.URL.Query().Get("status")
 	limit := 50
-	if l := r.URL.Query().Get("limit"); l != "" {
-		fmt.Sscanf(l, "%d", &limit)
-	}
-
-	var incidents []store.Incident
-	var err error
-
-	if query != "" {
-		incidents, err = s.db.SearchIncidents(query, limit)
-	} else {
-		// Return recent incidents
-		args := []interface{}{}
-		where := []string{}
-		
-		if impact != "" {
-			where = append(where, "impact = ?")
-			args = append(args, impact)
-		}
-		if status != "" {
-			where = append(where, "status = ?")
-			args = append(args, status)
-		}
-		if since != "" {
-			where = append(where, "started_at >= ?")
-			args = append(args, since)
-		}
-		
-		query := "SELECT provider_id, ext_id, title, impact, status, started_at, resolved_at, url, body, raw_json, first_seen, last_seen FROM incidents"
-		if len(where) > 0 {
-			query += " WHERE " + strings.Join(where, " AND ")
-		}
-		query += " ORDER BY started_at DESC LIMIT ?"
-		args = append(args, limit)
-		
-		rows, qerr := s.db.Query(query, args...)
-		if qerr != nil {
-			http.Error(w, qerr.Error(), http.StatusInternalServerError)
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed <= 0 {
+			writeJSONError(w, http.StatusBadRequest, "invalid 'limit': "+raw)
 			return
 		}
-		defer rows.Close()
-		
-		for rows.Next() {
-			var inc store.Incident
-			var rawJSON sql.NullString
-			var resolvedAt sql.NullString
-			if err := rows.Scan(
-				&inc.ProviderID, &inc.ExtID, &inc.Title, &inc.Impact, &inc.Status,
-				&inc.StartedAt, &resolvedAt, &inc.URL, &inc.Body,
-				&rawJSON, &inc.FirstSeen, &inc.LastSeen,
-			); err == nil {
-				if resolvedAt.Valid {
-					inc.ResolvedAt = resolvedAt.String
-				}
-				if rawJSON.Valid {
-					inc.RawJSON = rawJSON.String
-				}
-				incidents = append(incidents, inc)
-			}
+		if parsed > 500 {
+			parsed = 500
 		}
+		limit = parsed
 	}
 
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if query := r.URL.Query().Get("q"); query != "" {
+		incidents, err := s.db.SearchIncidents(query, limit)
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, "search failed: "+err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, nonNilIncidents(incidents))
 		return
 	}
 
-	json.NewEncoder(w).Encode(incidents)
-}
-
-// handleChanges returns what changed since a timestamp
-func (s *Server) handleChanges(w http.ResponseWriter, r *http.Request) {
-	since := r.URL.Query().Get("since")
-	if since == "" {
-		since = time.Now().Add(-24 * time.Hour).Format(time.RFC3339)
+	var args []interface{}
+	var where []string
+	if impact := r.URL.Query().Get("impact"); impact != "" {
+		where = append(where, "impact = ?")
+		args = append(args, impact)
+	}
+	if status := r.URL.Query().Get("status"); status != "" {
+		where = append(where, "status = ?")
+		args = append(args, strings.ToLower(status))
+	}
+	if since := r.URL.Query().Get("since"); since != "" {
+		where = append(where, "started_at >= ?")
+		args = append(args, since)
+	}
+	if r.URL.Query().Get("open") == "true" {
+		where = append(where, "(resolved_at IS NULL OR resolved_at = '')")
+		where = append(where, "LOWER(COALESCE(status, '')) NOT IN ('resolved', 'closed', 'completed', 'postmortem')")
 	}
 
-	type change struct {
-		Provider  string `json:"provider"`
-		Indicator string `json:"indicator"`
-		Old       string `json:"old_indicator"`
-		New       string `json:"new_indicator"`
-		Timestamp string `json:"timestamp"`
+	query := `SELECT provider_id, ext_id, title, COALESCE(impact, ''), COALESCE(status, ''), COALESCE(started_at, ''),
+	                 resolved_at, COALESCE(url, ''), COALESCE(body, ''), raw_json, first_seen, last_seen
+	          FROM incidents`
+	if len(where) > 0 {
+		query += " WHERE " + strings.Join(where, " AND ")
 	}
+	query += " ORDER BY started_at DESC LIMIT ?"
+	args = append(args, limit)
 
-	// Query checks for changes since the given timestamp
-	rows, err := s.db.Query(`
-		SELECT DISTINCT endpoint, indicator, ts FROM checks
-		WHERE ts >= ?
-		ORDER BY ts DESC
-		LIMIT 100
-	`, since)
+	rows, err := s.db.Query(query, args...)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	defer rows.Close()
 
-	var changes []change
-	for rows.Next() {
-		var c change
-		var indicator string
-		if err := rows.Scan(&c.Provider, &indicator, &c.Timestamp); err == nil {
-			c.New = indicator
-			changes = append(changes, c)
+	incidents, err := store.ScanIncidents(rows)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, nonNilIncidents(incidents))
+}
+
+func nonNilIncidents(in []store.Incident) []store.Incident {
+	if in == nil {
+		return []store.Incident{}
+	}
+	return in
+}
+
+// handleChanges returns actual indicator transitions since a timestamp.
+//
+// This compares each check against the one before it for the same endpoint and
+// reports only the rows where the indicator differs - previously it returned
+// every check with an always-empty old_indicator, which reported no changes at
+// all no matter what had happened.
+func (s *Server) handleChanges(w http.ResponseWriter, r *http.Request) {
+	since := r.URL.Query().Get("since")
+	if since == "" {
+		since = time.Now().UTC().Add(-24 * time.Hour).Format(time.RFC3339)
+	}
+
+	rows, err := s.db.Query(`
+		SELECT endpoint, ts, indicator, prev_indicator FROM (
+			SELECT c.endpoint,
+			       c.ts,
+			       COALESCE(c.indicator, '') AS indicator,
+			       COALESCE(LAG(c.indicator) OVER (PARTITION BY c.endpoint ORDER BY c.ts), '') AS prev_indicator
+			FROM checks c
+		)
+		WHERE ts >= ? AND prev_indicator != '' AND indicator != prev_indicator
+		ORDER BY ts DESC
+		LIMIT 200
+	`, since)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer rows.Close()
+
+	// Endpoints are shared between providers, so resolve names in bulk.
+	providers, err := s.db.GetProviders(store.ProviderFilter{})
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	namesByEndpoint := make(map[string][]string)
+	for _, p := range providers {
+		if p.Endpoint != "" {
+			namesByEndpoint[p.Endpoint] = append(namesByEndpoint[p.Endpoint], p.Name)
 		}
 	}
 
-	if changes == nil {
-		changes = []change{}
+	type change struct {
+		Providers []string `json:"providers"`
+		Endpoint  string   `json:"endpoint"`
+		Old       string   `json:"old_indicator"`
+		New       string   `json:"new_indicator"`
+		Timestamp string   `json:"timestamp"`
 	}
 
-	json.NewEncoder(w).Encode(changes)
+	changes := []change{}
+	for rows.Next() {
+		var c change
+		if err := rows.Scan(&c.Endpoint, &c.Timestamp, &c.New, &c.Old); err != nil {
+			writeJSONError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		c.Providers = namesByEndpoint[c.Endpoint]
+		sort.Strings(c.Providers)
+		changes = append(changes, c)
+	}
+	if err := rows.Err(); err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, changes)
 }
 
 // handleHealth returns the service's own health
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
-	// Get snapshot info
 	s.mu.RLock()
-	snapTime := time.Time{}
-	if s.snapshot != nil {
-		snapTime = s.snapshot.timestamp
-	}
+	snap := s.snapshot
 	s.mu.RUnlock()
 
-	staleness := time.Since(snapTime)
-	
 	health := map[string]interface{}{
 		"status": "operational",
-		"last_snapshot": snapTime.Format(time.RFC3339),
-		"stale_seconds": int(staleness.Seconds()),
 	}
 
-	s.mu.RLock()
-	if s.snapshot != nil {
-		health["snapshot_etag"] = s.snapshot.etag
+	if snap == nil {
+		health["status"] = "starting"
+		health["stale_seconds"] = nil
+		writeJSON(w, http.StatusServiceUnavailable, health)
+		return
 	}
-	s.mu.RUnlock()
 
+	staleness := time.Since(snap.timestamp)
+	health["last_snapshot"] = snap.timestamp.UTC().Format(time.RFC3339)
+	health["stale_seconds"] = int(staleness.Seconds())
+	health["snapshot_etag"] = snap.etag
+
+	status := http.StatusOK
 	if staleness > 30*time.Minute {
 		health["status"] = "degraded"
+		status = http.StatusServiceUnavailable
 	}
 
-	json.NewEncoder(w).Encode(health)
+	writeJSON(w, status, health)
 }
 
 // handleOpenAPI returns the OpenAPI specification
 func (s *Server) handleOpenAPI(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	io.WriteString(w, OpenAPISpec)
 }
 
-// handleMetrics returns Prometheus metrics
+// escapePromLabel escapes a Prometheus label value per the exposition format.
+func escapePromLabel(s string) string {
+	r := strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`)
+	return r.Replace(s)
+}
+
+// handleMetrics returns Prometheus metrics.
+//
+// HELP/TYPE lines are emitted exactly once per metric family: repeating them
+// inside the provider loop (as this used to) makes Prometheus reject the whole
+// scrape with "second HELP line for metric name".
 func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "# HELP belltower_up Whether the belltower service is running\n")
-	fmt.Fprintf(w, "# TYPE belltower_up gauge\n")
-	fmt.Fprintf(w, "belltower_up 1\n\n")
-	
-	fmt.Fprintf(w, "# HELP belltower_snapshot_stale_seconds How stale the last snapshot is\n")
-	fmt.Fprintf(w, "# TYPE belltower_snapshot_stale_seconds gauge\n")
+	w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+
+	var b strings.Builder
+
+	b.WriteString("# HELP belltower_up Whether the belltower service is running\n")
+	b.WriteString("# TYPE belltower_up gauge\n")
+	b.WriteString("belltower_up 1\n")
+
+	b.WriteString("# HELP belltower_snapshot_stale_seconds Age of the last snapshot in seconds\n")
+	b.WriteString("# TYPE belltower_snapshot_stale_seconds gauge\n")
 	s.mu.RLock()
-	if s.snapshot != nil {
-		fmt.Fprintf(w, "belltower_snapshot_stale_seconds %.0f\n", time.Since(s.snapshot.timestamp).Seconds())
-	} else {
-		fmt.Fprintf(w, "belltower_snapshot_stale_seconds 999999\n")
-	}
+	snap := s.snapshot
 	s.mu.RUnlock()
-	
-	// Provider metrics
-	providers, _ := s.db.GetProviders(store.ProviderFilter{EnabledOnly: true})
+	if snap != nil {
+		fmt.Fprintf(&b, "belltower_snapshot_stale_seconds %.0f\n", time.Since(snap.timestamp).Seconds())
+	} else {
+		b.WriteString("belltower_snapshot_stale_seconds NaN\n")
+	}
+
+	providers, err := s.db.GetProviders(store.ProviderFilter{EnabledOnly: true})
+	if err != nil {
+		log.Printf("metrics: failed to load providers: %v", err)
+		io.WriteString(w, b.String())
+		return
+	}
+	latest, err := s.db.GetLatestChecks()
+	if err != nil {
+		log.Printf("metrics: failed to load checks: %v", err)
+		io.WriteString(w, b.String())
+		return
+	}
+
+	b.WriteString("# HELP belltower_provider_up Whether a provider reports itself operational\n")
+	b.WriteString("# TYPE belltower_provider_up gauge\n")
 	for _, p := range providers {
 		if p.Endpoint == "" {
 			continue
 		}
-		var indicator, errMsg string
-		err := s.db.QueryRow(`SELECT indicator, ok FROM checks WHERE endpoint = ? ORDER BY ts DESC LIMIT 1`, p.Endpoint).Scan(&indicator, &errMsg)
-		if err == nil {
-			fmt.Fprintf(w, "# HELP belltower_provider_up Whether provider %s is up\n", p.Name)
-			fmt.Fprintf(w, "# TYPE belltower_provider_up gauge\n")
-			isUp := indicator == "none" || indicator == "operational"
-			if isUp {
-				fmt.Fprintf(w, "belltower_provider_up{provider=\"%s\",category=\"%s\",adapter=\"%s\"} 1\n", p.Name, p.Category, p.Adapter)
-			} else {
-				fmt.Fprintf(w, "belltower_provider_up{provider=\"%s\",category=\"%s\",adapter=\"%s\"} 0\n", p.Name, p.Category, p.Adapter)
-				fmt.Fprintf(w, "belltower_provider_indicator{provider=\"%s\",indicator=\"%s\"} 1\n", p.Name, indicator)
-			}
+		check, ok := latest[p.Endpoint]
+		if !ok {
+			continue
+		}
+		up := 0
+		if check.Indicator == store.IndicatorNone {
+			up = 1
+		}
+		fmt.Fprintf(&b, `belltower_provider_up{provider="%s",category="%s",adapter="%s",indicator="%s"} %d`+"\n",
+			escapePromLabel(p.Name), escapePromLabel(p.Category), escapePromLabel(p.Adapter),
+			escapePromLabel(check.Indicator), up)
+	}
+
+	b.WriteString("# HELP belltower_provider_reachable Whether the last poll reached the provider\n")
+	b.WriteString("# TYPE belltower_provider_reachable gauge\n")
+	for _, p := range providers {
+		if p.Endpoint == "" {
+			continue
+		}
+		check, ok := latest[p.Endpoint]
+		if !ok {
+			continue
+		}
+		reachable := 0
+		if check.OK {
+			reachable = 1
+		}
+		fmt.Fprintf(&b, `belltower_provider_reachable{provider="%s",adapter="%s"} %d`+"\n",
+			escapePromLabel(p.Name), escapePromLabel(p.Adapter), reachable)
+	}
+
+	b.WriteString("# HELP belltower_provider_latency_ms Latency of the last poll in milliseconds\n")
+	b.WriteString("# TYPE belltower_provider_latency_ms gauge\n")
+	for _, p := range providers {
+		if p.Endpoint == "" {
+			continue
+		}
+		if check, ok := latest[p.Endpoint]; ok {
+			fmt.Fprintf(&b, `belltower_provider_latency_ms{provider="%s"} %d`+"\n",
+				escapePromLabel(p.Name), check.LatencyMS)
 		}
 	}
+
+	io.WriteString(w, b.String())
 }
 
-// handleDashboard serves the HTML dashboard
+// handleDashboard serves the HTML dashboard, and 404s everything else.
 func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
-	// Serve static files
-	if r.URL.Path == "/static/htmx.min.js" {
-		w.Header().Set("Content-Type", "application/javascript")
-		w.Write(htmxJS)
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/html")
-	tmpl := template.Must(template.New("dashboard").Parse(dashboardTemplate))
-	tmpl.Execute(w, nil)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := s.dashboard.Execute(w, nil); err != nil {
+		log.Printf("failed to render dashboard: %v", err)
+	}
 }
 
 // RefreshSnapshot rebuilds the in-memory snapshot cache
 func (s *Server) RefreshSnapshot(ctx context.Context) error {
-	s.refreshSnapshot()
-	return nil
+	return s.refreshSnapshot()
 }
 
-func (s *Server) refreshSnapshot() {
+func (s *Server) refreshSnapshot() error {
 	snapshot, err := s.db.BuildSnapshot()
 	if err != nil {
-		return
+		return fmt.Errorf("failed to build snapshot: %w", err)
 	}
 
 	jsonData, err := snapshot.Marshal()
 	if err != nil {
-		return
+		return fmt.Errorf("failed to marshal snapshot: %w", err)
 	}
 
 	s.mu.Lock()
@@ -550,6 +711,7 @@ func (s *Server) refreshSnapshot() {
 		etag:      snapshot.ETag(),
 		timestamp: time.Now(),
 	}
+	return nil
 }
 
 // OpenAPISpec is the embedded OpenAPI specification
@@ -691,9 +853,6 @@ const OpenAPISpec = `{
     }
   }
 }`
-
-//go:embed static/htmx.min.js
-var htmxJS []byte
 
 //go:embed templates/dashboard.html
 var dashboardTemplate string
