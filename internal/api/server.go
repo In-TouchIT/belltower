@@ -720,24 +720,172 @@ const OpenAPISpec = `{
   "info": {
     "title": "Belltower Status Page Monitor API",
     "version": "1.0.0",
-    "description": "API for monitoring vendor status pages"
+    "description": "Aggregates vendor status pages into a single dashboard and API, answering 'is this us, or is <vendor> down?' in one place."
   },
   "servers": [
     {"url": "http://192.168.111.122:8088"}
   ],
+  "components": {
+    "schemas": {
+      "Indicator": {
+        "type": "string",
+        "enum": ["none", "minor", "major", "critical", "maintenance", "unknown"],
+        "description": "Operational status: none=operational, minor/degraded, major/critical outage, maintenance=planned, unknown=unreachable"
+      },
+      "Provider": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string", "description": "Unique slug identifier"},
+          "name": {"type": "string"},
+          "category": {"type": "string"},
+          "adapter": {"type": "string"},
+          "endpoint": {"type": "string", "nullable": true, "description": "API endpoint URL (null for manual providers)"},
+          "page_url": {"type": "string"},
+          "tier": {"type": "integer", "description": "1=critical infrastructure, 2=business-critical, 3=important, 4=informational"},
+          "enabled": {"type": "boolean"},
+          "indicator": {"$ref": "#/components/schemas/Indicator"},
+          "reachable": {"type": "boolean", "description": "Whether the last poll got an HTTP response"},
+          "last_check": {"type": "string", "format": "date-time", "nullable": true},
+          "notes": {"type": "string", "nullable": true}
+        },
+        "required": ["id", "name", "category", "adapter", "indicator", "reachable"]
+      },
+      "ProviderDetail": {
+        "allOf": [
+          {"$ref": "#/components/schemas/Provider"},
+          {
+            "type": "object",
+            "properties": {
+              "incidents": {"type": "array", "items": {"$ref": "#/components/schemas/Incident"}},
+              "components": {"type": "array", "items": {"$ref": "#/components/schemas/Component"}},
+              "check_history": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "ts": {"type": "string", "format": "date-time"},
+                    "indicator": {"$ref": "#/components/schemas/Indicator"},
+                    "latency_ms": {"type": "integer", "nullable": true},
+                    "ok": {"type": "boolean"}
+                  }
+                }
+              },
+              "last_error": {"type": "string", "nullable": true}
+            }
+          }
+        ]
+      },
+      "Incident": {
+        "type": "object",
+        "properties": {
+          "provider_id": {"type": "string"},
+          "ext_id": {"type": "string", "description": "External incident ID from the status page"},
+          "title": {"type": "string"},
+          "impact": {"type": "string", "description": "none|minor|major|critical|maintenance"},
+          "status": {"type": "string", "description": "investigating|identified|monitoring|resolved|reported"},
+          "started_at": {"type": "string", "format": "date-time"},
+          "resolved_at": {"type": "string", "format": "date-time", "nullable": true},
+          "url": {"type": "string", "nullable": true},
+          "body": {"type": "string", "nullable": true},
+          "first_seen": {"type": "string", "format": "date-time"},
+          "last_seen": {"type": "string", "format": "date-time"}
+        },
+        "required": ["provider_id", "ext_id", "title", "impact", "status", "started_at", "first_seen", "last_seen"]
+      },
+      "Component": {
+        "type": "object",
+        "properties": {
+          "provider_id": {"type": "string"},
+          "name": {"type": "string"},
+          "status": {"type": "string", "description": "operational|degraded|major|maintenance|unknown"},
+          "updated_at": {"type": "string", "format": "date-time"}
+        },
+        "required": ["name", "status"]
+      },
+      "Snapshot": {
+        "type": "object",
+        "properties": {
+          "built_at": {"type": "string", "format": "date-time"},
+          "stats": {
+            "type": "object",
+            "properties": {
+              "total_providers": {"type": "integer"},
+              "operational": {"type": "integer"},
+              "degraded": {"type": "integer"},
+              "outage": {"type": "integer"},
+              "maintenance": {"type": "integer"},
+              "unknown": {"type": "integer"}
+            }
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {"type": "string"},
+                "name": {"type": "string"},
+                "category": {"type": "string"},
+                "adapter": {"type": "string"},
+                "indicator": {"$ref": "#/components/schemas/Indicator"},
+                "ok": {"type": "boolean"},
+                "tier": {"type": "integer"},
+                "page_url": {"type": "string"},
+                "last_check": {"type": "string", "format": "date-time", "nullable": true},
+                "latency_ms": {"type": "integer", "nullable": true},
+                "error": {"type": "string", "nullable": true}
+              },
+              "required": ["id", "name", "category", "indicator", "ok", "tier"]
+            }
+          },
+          "incidents": {"type": "array", "items": {"$ref": "#/components/schemas/Incident"}},
+          "components": {"type": "array", "items": {"$ref": "#/components/schemas/Component"}}
+        },
+        "required": ["built_at", "providers"]
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {"type": "string", "enum": ["operational", "degraded", "unhealthy"]},
+          "last_cycle": {"type": "string", "format": "date-time", "nullable": true},
+          "cycle_duration_ms": {"type": "integer", "nullable": true},
+          "stale_seconds": {"type": "integer"},
+          "snapshot_etag": {"type": "string"},
+          "providers_checked": {"type": "integer"},
+          "adapter_errors": {"type": "integer"},
+          "unmonitored": {"type": "integer"}
+        }
+      },
+      "Change": {
+        "type": "object",
+        "properties": {
+          "providers": {"type": "array", "items": {"type": "string"}},
+          "endpoint": {"type": "string"},
+          "old_indicator": {"$ref": "#/components/schemas/Indicator"},
+          "new_indicator": {"$ref": "#/components/schemas/Indicator"},
+          "timestamp": {"type": "string", "format": "date-time"}
+        },
+        "required": ["providers", "old_indicator", "new_indicator", "timestamp"]
+      }
+    }
+  },
   "paths": {
     "/api/v1/snapshot": {
       "get": {
         "summary": "Get full current state snapshot",
+        "description": "Returns the precomputed snapshot representing the entire current state. Uses ETag for efficient caching - send If-None-Match to get 304 Not Modified when unchanged.",
+        "parameters": [
+          {"name": "If-None-Match", "in": "header", "schema": {"type": "string"}, "description": "ETag from a previous response"},
+          {"name": "category", "in": "query", "schema": {"type": "string"}, "description": "Filter providers by category"}
+        ],
         "responses": {
           "200": {
             "description": "Current snapshot",
-            "content": {
-              "application/json": {}
-            }
+            "headers": {"ETag": {"schema": {"type": "string"}}},
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Snapshot"}}}
           },
           "304": {
-            "description": "Not modified (ETag match)"
+            "description": "Not modified (ETag match)",
+            "headers": {"ETag": {"schema": {"type": "string"}}}
           }
         }
       }
@@ -745,16 +893,16 @@ const OpenAPISpec = `{
     "/api/v1/outages": {
       "get": {
         "summary": "Get current outages",
+        "description": "Returns providers whose latest check is non-operational (not 'none' or 'maintenance').",
         "parameters": [
           {"name": "category", "in": "query", "schema": {"type": "string"}},
-          {"name": "min_impact", "in": "query", "schema": {"type": "string"}}
+          {"name": "min_impact", "in": "query", "schema": {"type": "string"}, "description": "Filter by minimum impact level"},
+          {"name": "within", "in": "query", "schema": {"type": "string"}, "description": "Only show outages within this duration (e.g. 30m, 2h)"}
         ],
         "responses": {
           "200": {
             "description": "List of outages",
-            "content": {
-              "application/json": {}
-            }
+            "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/Provider"}}}}
           }
         }
       }
@@ -763,15 +911,14 @@ const OpenAPISpec = `{
       "get": {
         "summary": "Get provider inventory",
         "parameters": [
-          {"name": "adapter", "in": "query", "schema": {"type": "string"}},
-          {"name": "category", "in": "query", "schema": {"type": "string"}}
+          {"name": "adapter", "in": "query", "schema": {"type": "string"}, "description": "Filter by adapter type"},
+          {"name": "category", "in": "query", "schema": {"type": "string"}},
+          {"name": "enabled_only", "in": "query", "schema": {"type": "boolean"}, "description": "Exclude disabled providers"}
         ],
         "responses": {
           "200": {
             "description": "Provider list",
-            "content": {
-              "application/json": {}
-            }
+            "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/Provider"}}}}
           }
         }
       }
@@ -779,13 +926,15 @@ const OpenAPISpec = `{
     "/api/v1/providers/{id}": {
       "get": {
         "summary": "Get provider details including incidents and components",
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
         "responses": {
           "200": {
             "description": "Provider details",
-            "content": {
-              "application/json": {}
-            }
-          }
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ProviderDetail"}}}
+          },
+          "404": {"description": "Provider not found"}
         }
       }
     },
@@ -793,18 +942,18 @@ const OpenAPISpec = `{
       "get": {
         "summary": "Search incidents",
         "parameters": [
-          {"name": "q", "in": "query", "schema": {"type": "string"}},
+          {"name": "q", "in": "query", "schema": {"type": "string"}, "description": "Full-text search on title and body"},
           {"name": "since", "in": "query", "schema": {"type": "string", "format": "date-time"}},
           {"name": "impact", "in": "query", "schema": {"type": "string"}},
-          {"name": "status", "in": "query", "schema": {"type": "string"}},
-          {"name": "limit", "in": "query", "schema": {"type": "integer"}}
+          {"name": "status", "in": "query", "schema": {"type": "string"}, "description": "incident status: investigating|identified|monitoring|resolved"},
+          {"name": "provider_id", "in": "query", "schema": {"type": "string"}},
+          {"name": "open", "in": "query", "schema": {"type": "boolean"}, "description": "Only open (unresolved) incidents"},
+          {"name": "limit", "in": "query", "schema": {"type": "integer"}, "default": 50}
         ],
         "responses": {
           "200": {
             "description": "Incident list",
-            "content": {
-              "application/json": {}
-            }
+            "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/Incident"}}}}
           }
         }
       }
@@ -812,15 +961,14 @@ const OpenAPISpec = `{
     "/api/v1/changes": {
       "get": {
         "summary": "Get recent changes since a timestamp",
+        "description": "Returns provider indicator transitions since the given timestamp. Useful for standup/triage to see what changed.",
         "parameters": [
-          {"name": "since", "in": "query", "schema": {"type": "string", "format": "date-time"}}
+          {"name": "since", "in": "query", "schema": {"type": "string", "format": "date-time"}, "description": "ISO timestamp to compare against"}
         ],
         "responses": {
           "200": {
             "description": "Change list",
-            "content": {
-              "application/json": {}
-            }
+            "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/Change"}}}}
           }
         }
       }
@@ -828,12 +976,15 @@ const OpenAPISpec = `{
     "/api/v1/health": {
       "get": {
         "summary": "Get service health",
+        "description": "Returns the health of the belltower service itself - last poll cycle, adapter error counts, and snapshot staleness.",
         "responses": {
           "200": {
-            "description": "Health status",
-            "content": {
-              "application/json": {}
-            }
+            "description": "Service is healthy",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Health"}}}
+          },
+          "503": {
+            "description": "Service is unhealthy (stale snapshot or poll failures)",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Health"}}}
           }
         }
       }
@@ -841,12 +992,11 @@ const OpenAPISpec = `{
     "/metrics": {
       "get": {
         "summary": "Prometheus metrics",
+        "description": "Prometheus-compatible metrics endpoint. Metrics use the 'belltower_' prefix.",
         "responses": {
           "200": {
-            "description": "Metrics in Prometheus format",
-            "content": {
-              "text/plain": {}
-            }
+            "description": "Metrics in Prometheus text format",
+            "content": {"text/plain": {"schema": {"type": "string"}}}
           }
         }
       }

@@ -1,3 +1,5 @@
+name: belltower
+
 services:
   belltower:
     image: belltower:latest
