@@ -53,10 +53,17 @@ func NewServer(db *store.DB, cfg Config) *Server {
 	}
 }
 
+//go:embed templates/dashboard.html
+var dashboardTemplate string
+
+//go:embed static/favicon.png
+var faviconBytes []byte
+
 // Routes sets up all HTTP routes
 func (s *Server) Routes() http.Handler {
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("/favicon.png", s.handleFavicon)
 	mux.HandleFunc("/api/v1/snapshot", s.handleSnapshot)
 	mux.HandleFunc("/api/v1/outages", s.handleOutages)
 	mux.HandleFunc("/api/v1/providers", s.handleProviders)
@@ -579,6 +586,12 @@ func (s *Server) handleOpenAPI(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, OpenAPISpec)
 }
 
+func (s *Server) handleFavicon(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "public, max-age=3600")
+	w.Write(faviconBytes)
+}
+
 // escapePromLabel escapes a Prometheus label value per the exposition format.
 func escapePromLabel(s string) string {
 	r := strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`)
@@ -1000,9 +1013,18 @@ const OpenAPISpec = `{
           }
         }
       }
+    },
+    "/favicon.png": {
+      "get": {
+        "summary": "Belltower favicon",
+        "description": "Favicon for the Belltower dashboard.",
+        "responses": {
+          "200": {
+            "description": "Favicon image",
+            "content": {"image/png": {"schema": {"type": "string", "format": "binary"}}}
+          }
+        }
+      }
     }
   }
 }`
-
-//go:embed templates/dashboard.html
-var dashboardTemplate string
