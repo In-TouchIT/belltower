@@ -120,13 +120,23 @@ providers:
       tier: 2
       enabled: true
     - id: apple
-      name: Apple
+      name: Apple Services
       category: SaaS
       page_url: https://www.apple.com/support/systemstatus/
-      adapter: manual
+      adapter: apple
+      endpoint: https://www.apple.com/support/systemstatus/data/system_status_en_US.js
       tier: 3
       enabled: true
-      notes: Undocumented JS data feed at https://www.apple.com/support/systemstatus/data/system_status_en_US.js — needs a custom JS-feed adapter; review manually
+      notes: "Public JSON data feed (despite .js extension). Covers App Store, iCloud, Apple Music, etc."
+    - id: apple-developer
+      name: Apple Developer Services
+      category: DevOps
+      page_url: https://www.apple.com/support/systemstatus/data/developer/
+      adapter: apple
+      endpoint: https://www.apple.com/support/systemstatus/data/developer/system_status_en_US.js
+      tier: 2
+      enabled: true
+      notes: "Public JSONP data feed. Covers CloudKit, Xcode Cloud, App Store Connect, etc."
     - id: arctic-wolf
       name: Arctic Wolf
       category: Security
@@ -315,10 +325,11 @@ providers:
       name: Cisco Webex
       category: SaaS
       page_url: https://status.webex.com/
-      adapter: statuspage
-      endpoint: https://status.webex.com/api/v2/summary.json
+      adapter: webex
+      endpoint: https://status.webex.com/index.json
       tier: 3
       enabled: true
+      notes: "Custom JSON API at /index.json. Indicator colors: green=none/yellow=minor/red=major"
     - id: citrix-cloud
       name: Citrix Cloud
       category: VDI

@@ -61,6 +61,8 @@ func NewRegistry(userAgent string, timeout time.Duration) *Registry {
 	r.Register("heroku", NewHerokuAdapter(client, userAgent))
 	r.Register("gworkspace", NewGWorkspaceAdapter(client, userAgent))
 	r.Register("salesforce", NewSalesforceAdapter(client, userAgent))
+	r.Register("apple", NewAppleAdapter(client, userAgent))
+	r.Register("webex", NewWebexAdapter(client, userAgent))
 
 	return r
 }
