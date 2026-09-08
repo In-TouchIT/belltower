@@ -923,10 +923,11 @@ providers:
       name: Meta
       category: SaaS
       page_url: https://metastatuspage.com/
-      adapter: manual
+      adapter: statuspage
+      endpoint: https://metastatuspage.com/api/v2/summary.json
       tier: 3
       enabled: true
-      notes: Unknown status page platform - review manually
+      notes: "Using StatusPage API (confirmed working)"
     - id: microsoft-365
       name: Microsoft 365
       category: SaaS
@@ -1452,10 +1453,11 @@ providers:
       name: Square
       category: Financial SaaS
       page_url: https://www.issquareup.com/
-      adapter: manual
+      adapter: statuspage
+      endpoint: https://www.issquareup.com/api/v2/summary.json
       tier: 2
       enabled: true
-      notes: Unknown status page platform - review manually
+      notes: "Using StatusPage API (confirmed working)"
     - id: statuscake
       name: StatusCake
       category: Monitoring
