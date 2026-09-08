@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ccarson/belltower/internal/store"
+	"github.com/In-TouchIT/belltower/internal/store"
 )
 
 // Server is the HTTP server for the status page monitor

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ccarson/belltower/internal/adapters"
-	"github.com/ccarson/belltower/internal/store"
+	"github.com/In-TouchIT/belltower/internal/adapters"
+	"github.com/In-TouchIT/belltower/internal/store"
 )
 
 func testDB(t *testing.T) *store.DB {

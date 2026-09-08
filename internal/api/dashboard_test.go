@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ccarson/belltower/internal/store"
+	"github.com/In-TouchIT/belltower/internal/store"
 )
 
 // Incident titles and provider names come from third-party status feeds. The

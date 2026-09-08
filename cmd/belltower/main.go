@@ -14,10 +14,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ccarson/belltower/internal/adapters"
-	"github.com/ccarson/belltower/internal/api"
-	"github.com/ccarson/belltower/internal/poller"
-	"github.com/ccarson/belltower/internal/store"
+	"github.com/In-TouchIT/belltower/internal/adapters"
+	"github.com/In-TouchIT/belltower/internal/api"
+	"github.com/In-TouchIT/belltower/internal/poller"
+	"github.com/In-TouchIT/belltower/internal/store"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

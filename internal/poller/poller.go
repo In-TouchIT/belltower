@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ccarson/belltower/internal/adapters"
-	"github.com/ccarson/belltower/internal/store"
+	"github.com/In-TouchIT/belltower/internal/adapters"
+	"github.com/In-TouchIT/belltower/internal/store"
 )
 
 // Poller periodically polls provider status pages

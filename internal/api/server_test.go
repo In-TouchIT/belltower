@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ccarson/belltower/internal/store"
+	"github.com/In-TouchIT/belltower/internal/store"
 )
 
 func testServer(t *testing.T) (*Server, http.Handler, *store.DB) {
