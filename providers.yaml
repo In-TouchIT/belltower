@@ -254,10 +254,11 @@ providers:
       name: Blumira
       category: Security
       page_url: https://status.blumira.com/
-      adapter: manual
+      adapter: rss
+      endpoint: https://status.blumira.com/state_feed/feed.atom
       tier: 2
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "Hund.io Atom feed"
     - id: box
       name: Box
       category: SaaS
@@ -367,10 +368,11 @@ providers:
       name: Cogent
       category: Telecom
       page_url: https://ecogent.cogentco.com/network-status
-      adapter: manual
+      adapter: rss
+      endpoint: https://ecogent.cogentco.com/network-status/feed
       tier: 3
       enabled: true
-      notes: Unknown status page platform - review manually
+      notes: "WordPress RSS feed"
     - id: cohere
       name: Cohere
       category: AI/ML
@@ -737,10 +739,11 @@ providers:
       name: Hugging Face
       category: AI/ML
       page_url: https://status.huggingface.co/
-      adapter: manual
+      adapter: rss
+      endpoint: https://status.huggingface.co/feed
       tier: 2
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "RSS 2.0 feed"
     - id: huntress
       name: Huntress
       category: Security
