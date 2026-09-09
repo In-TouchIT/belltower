@@ -368,11 +368,10 @@ providers:
       name: Cogent
       category: Telecom
       page_url: https://ecogent.cogentco.com/network-status
-      adapter: rss
-      endpoint: https://ecogent.cogentco.com/network-status/feed
+      adapter: manual
       tier: 3
       enabled: true
-      notes: "WordPress RSS feed"
+      notes: "SPA-only status page, no public API available"
     - id: cohere
       name: Cohere
       category: AI/ML
