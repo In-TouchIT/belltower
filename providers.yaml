@@ -384,10 +384,11 @@ providers:
       name: ColoBlxs
       category: Colocation
       page_url: https://status.coloblox.com/
-      adapter: manual
+      adapter: cachet
+      endpoint: https://status.coloblox.com/api/v1
       tier: 3
       enabled: true
-      notes: "Cachet-like API (non-standard response format). Needs custom handler."
+      notes: "Cachet API (alternative format with /incidents endpoint)"
     - id: compliance-scorecard
       name: Compliance Scorecard
       category: Compliance
