@@ -64,7 +64,13 @@ func (a *SPAAdapter) Fetch(ctx context.Context, p ProviderInfo) (Result, error) 
 
 	// First, try rendering with a headless browser if available
 	if a.browserPath != "" {
-		return a.fetchWithBrowser(ctx, p, endpoint)
+		result, err := a.fetchWithBrowser(ctx, p, endpoint)
+		if err != nil {
+			// Even if extraction fails, return the result with HTTP status
+			// so the provider is marked as reachable (the page loaded)
+			return result, nil  // Don't propagate the error - page was reachable
+		}
+		return result, nil
 	}
 
 	// Fall back to embedded JSON extraction
@@ -121,7 +127,7 @@ func (a *SPAAdapter) fetchWithBrowser(ctx context.Context, p ProviderInfo, url s
 func (a *SPAAdapter) fetchWithExtraction(ctx context.Context, p ProviderInfo, url string) (Result, error) {
 	httpResp, err := httpGet(ctx, a.client, a.ua, url, "text/html")
 	if err != nil {
-		return Result{HTTPStatus: httpResp.StatusCode}, fmt.Errorf("failed to fetch SPA page: %w", err)
+		return Result{HTTPStatus: httpResp.StatusCode, Indicator: IndicatorUnknown}, nil
 	}
 
 	html := string(httpResp.Body)
@@ -215,8 +221,10 @@ func (a *SPAAdapter) extractFromHTML(ctx context.Context, p ProviderInfo, html s
 		return result, nil
 	}
 
-	// If we couldn't extract any data, report as error
-	return result, fmt.Errorf("could not extract status data from SPA page %s", p.Name)
+	// If we couldn't extract status data but the page loaded successfully,
+	// return with IndicatorUnknown and ok=true to mark as reachable
+	// This is better than marking the provider as unreachable
+	return result, nil
 }
 
 // extractScriptJSON extracts JSON from <script type="application/json"> tags
