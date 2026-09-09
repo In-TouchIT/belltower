@@ -19,10 +19,11 @@ providers:
       name: ADP
       category: Financial SaaS
       page_url: https://status.adp.com/
-      adapter: statuspage
-      endpoint: https://status.adp.com/api/v2/summary.json
+      adapter: manual
+      endpoint: https://status.adp.com/
       tier: 2
       enabled: true
+      notes: "StatusPage.io redirect loop to contact page - requires synthetic monitoring"
     - id: att
       name: AT&T
       category: Telecom
@@ -51,10 +52,11 @@ providers:
       name: Action1
       category: Patching
       page_url: https://status.action1.com/
-      adapter: statuspage
-      endpoint: https://status.action1.com/api/v2/summary.json
+      adapter: manual
+      endpoint: https://status.action1.com/
       tier: 4
       enabled: true
+      notes: "Endpoint returns 404 - status page may be inactive or changed"
     - id: addigy
       name: Addigy
       category: MDM
@@ -300,14 +302,6 @@ providers:
       endpoint: https://www.canvastatus.com/api/v2/summary.json
       tier: 3
       enabled: true
-    - id: cisco
-      name: Cisco
-      category: Vendor Portal
-      page_url: https://www.cisco.com/c/en/us/support/web/cloud-status.html
-      adapter: statuspage
-      endpoint: https://www.cisco.com/c/en/us/support/web/cloud-status.html/api/v2/summary.json
-      tier: 4
-      enabled: true
     - id: cisco-meraki
       name: Cisco Meraki
       category: Network
@@ -333,6 +327,41 @@ providers:
       tier: 3
       enabled: true
       notes: "Custom JSON API at /index.json. Indicator colors: green=none/yellow=minor/red=major"
+    - id: cisco-duo
+      name: Cisco Duo
+      category: Security
+      page_url: https://status.duo.com/
+      adapter: statuspage
+      endpoint: https://status.duo.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+      notes: "Cisco Duo security status"
+    - id: cisco-thousandeyes
+      name: Cisco ThousandEyes
+      category: Network Monitoring
+      page_url: https://status.thousandeyes.com/
+      adapter: statuspage
+      endpoint: https://status.thousandeyes.com/api/v2/summary.json
+      tier: 2
+      enabled: true
+      notes: "Cisco ThousandEyes status"
+    - id: cisco-intersight
+      name: Cisco Intersight
+      category: Infrastructure
+      page_url: https://status.intersight.com/
+      adapter: statuspage
+      endpoint: https://status.intersight.com/api/v2/summary.json
+      tier: 3
+      enabled: true
+    - id: cisco-secure-endpoint
+      name: Cisco Secure Endpoint
+      category: Security
+      page_url: https://ciscoamp.statuspage.io/
+      adapter: statuspage
+      endpoint: https://ciscoamp.statuspage.io/api/v2/summary.json
+      tier: 2
+      enabled: true
+      notes: "Cisco Secure Endpoint (formerly AMP)"
     - id: citrix-cloud
       name: Citrix Cloud
       category: VDI
@@ -751,10 +780,11 @@ providers:
       name: Huntress
       category: Security
       page_url: https://status.huntress.io/
-      adapter: statuspage
-      endpoint: https://status.huntress.io/api/v2/summary.json
+      adapter: manual
+      endpoint: https://status.huntress.io/
       tier: 2
       enabled: true
+      notes: "Requires authentication (401) - status.huntress.io needs API token"
     - id: ibm-cloud
       name: IBM Cloud
       category: Cloud
@@ -1505,10 +1535,11 @@ providers:
       name: Stripe
       category: SaaS
       page_url: https://status.stripe.com/
-      adapter: statuspage
-      endpoint: https://status.stripe.com/api/v2/summary.json
+      adapter: rss
+      endpoint: https://www.stripestatus.com/history.rss
       tier: 3
       enabled: true
+      notes: "RSS feed from www.stripestatus.com"
     - id: syncro
       name: Syncro
       category: RMM
@@ -1577,10 +1608,11 @@ providers:
       name: ThreatDown (Malwarebytes)
       category: Security
       page_url: https://status.threatdown.com/
-      adapter: statuspage
-      endpoint: https://status.threatdown.com/api/v2/summary.json
+      adapter: spa
+      endpoint: https://status.threatdown.com/
       tier: 2
       enabled: true
+      notes: "SPA page - browser rendering required"
     - id: threatlocker
       name: ThreatLocker
       category: Security
@@ -1601,10 +1633,11 @@ providers:
       name: Trend Micro
       category: Security
       page_url: https://status.trendmicro.com/en-US/
-      adapter: statuspage
-      endpoint: https://status.trendmicro.com/en-US/api/v2/summary.json
+      adapter: spa
+      endpoint: https://status.trendmicro.com/en-US/
       tier: 2
       enabled: true
+      notes: "SPA page - browser rendering required"
     - id: twilio
       name: Twilio
       category: SaaS
@@ -1763,10 +1796,11 @@ providers:
       name: Zendesk
       category: SaaS
       page_url: https://status.zendesk.com
-      adapter: statuspage
-      endpoint: https://status.zendesk.com/api/v2/summary.json
+      adapter: manual
+      endpoint: https://status.zendesk.com/
       tier: 3
       enabled: true
+      notes: "StatusPage.io API returns 404 - endpoint changed or inactive"
     - id: zerotier
       name: ZeroTier
       category: Network

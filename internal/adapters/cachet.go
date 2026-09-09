@@ -60,8 +60,8 @@ type cachetPageStringState struct {
 type CachetComponent struct {
 	ID          int                `json:"id"`
 	Name        string             `json:"name"`
-	Description string             `json:"description"`
 	Status      int                `json:"status"`
+	StatusName  string             `json:"status_name"`
 	URL         string             `json:"url"`
 	ParentID    int                `json:"parent_id"`
 	Children    []CachetComponent  `json:"children"`
@@ -303,9 +303,15 @@ func (a *CachetAdapter) flattenComponents(components []CachetComponent) []Compon
 			continue
 		}
 
+		status := a.mapCachetStatus(c.Status)
+		// Use status_name if available (more descriptive)
+		if c.StatusName != "" {
+			status = strings.ToLower(c.StatusName)
+		}
+
 		result = append(result, Component{
 			Name:   c.Name,
-			Status: a.mapCachetStatus(c.Status),
+			Status: status,
 		})
 	}
 	return result
