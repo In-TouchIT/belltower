@@ -283,7 +283,7 @@ providers:
       adapter: manual
       tier: 1
       enabled: true
-      notes: BetterStack API endpoint returns 404 - uses Next.js app, needs custom adapter or manual monitoring
+      notes: "Requires API authentication (api.cdn77.com/v3/datacenter/status)"
     - id: calendly
       name: Calendly
       category: SaaS
@@ -971,18 +971,20 @@ providers:
       name: Microsoft Azure DevOps
       category: SaaS
       page_url: https://status.dev.azure.com/
-      adapter: manual
+      adapter: generic
+      endpoint: https://status.dev.azure.com/_apis/status/health?api-version=7.1-preview.1
       tier: 3
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "Azure DevOps health API - returns service health JSON"
     - id: microsoft-power-platform
       name: Microsoft Power Platform
       category: SaaS
       page_url: https://admin.powerplatform.microsoft.com/status
-      adapter: manual
+      adapter: rss
+      endpoint: https://status.cloud.microsoft/api/feed/ppac
       tier: 3
       enabled: true
-      notes: Unknown status page platform - review manually
+      notes: "RSS feed from Microsoft status.cloud.microsoft API"
     - id: mimecast
       name: Mimecast
       category: Security
@@ -1045,10 +1047,11 @@ providers:
       name: Namecheap
       category: Domains/DNS
       page_url: https://www.namecheap.com/status-updates/
-      adapter: manual
+      adapter: rss
+      endpoint: https://www.namecheap.com/status-updates/feed/
       tier: 4
       enabled: true
-      notes: Unknown status page platform - review manually
+      notes: "RSS 2.0 feed from WordPress status blog"
     - id: netsuite
       name: NetSuite
       category: Financial SaaS
@@ -1199,10 +1202,11 @@ providers:
       name: PayPal
       category: Financial SaaS
       page_url: https://www.paypal-status.com/product/production
-      adapter: manual
+      adapter: spa
+      endpoint: https://www.paypal-status.com/product/production
       tier: 2
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "SPA page with RSS feeds at /feed/rss and /feed/atom"
     - id: perplexity
       name: Perplexity
       category: AI/ML
@@ -1730,7 +1734,7 @@ providers:
       adapter: manual
       tier: 3
       enabled: true
-      notes: Unknown status page platform - review manually
+      notes: "Requires Microsoft Graph API tenant auth (out of scope for v1)"
     - id: workos
       name: WorkOS
       category: Identity
