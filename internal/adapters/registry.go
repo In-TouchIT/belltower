@@ -67,6 +67,7 @@ func NewRegistry(userAgent string, timeout time.Duration) *Registry {
 	r.Register("cachet", NewCachetAdapter(client, userAgent))
 	r.Register("statuscast", NewStatusCastAdapter(client, userAgent))
 	r.Register("spa", NewSPAAdapter(client, userAgent, detectBrowserPath()))
+	r.Register("generic", NewGenericJSONAdapter(client, userAgent))
 
 	return r
 }

@@ -1312,18 +1312,20 @@ providers:
       name: Rewst
       category: Automation
       page_url: https://status.rewst.io/
-      adapter: manual
+      adapter: generic
+      endpoint: https://status.rewst.io/api/status
       tier: 4
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "Custom JSON API at /api/status"
     - id: ringcentral
       name: RingCentral
       category: Telephony
       page_url: https://status.ringcentral.com/
-      adapter: manual
+      adapter: generic
+      endpoint: https://status.ringcentral.com/status.json
       tier: 4
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "Custom JSON API at /status.json"
     - id: rippling
       name: Rippling
       category: Financial SaaS
