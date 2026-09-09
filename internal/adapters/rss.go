@@ -13,6 +13,7 @@ import (
 // Examples:
 // - Azure: https://azurestatuscdn.azureedge.net/en-us/status/feed/
 // - OCI: https://ocistatus.oraclecloud.com/api/v2/incident-summary.rss
+// - Hetzner: https://status.hetzner.com/en.atom
 type RSSAdapter struct {
 	client *http.Client
 	ua     string
@@ -39,6 +40,89 @@ type RSSItem struct {
 	GUID        string `xml:"guid"`
 }
 
+// AtomFeed is the Atom Syndication Format
+type AtomFeed struct {
+	XMLName xml.Name   `xml:"feed"`
+	Title   string     `xml:"title"`
+	Link    AtomLink   `xml:"link"`
+	Updated string     `xml:"updated"`
+	Entries []AtomEntry `xml:"entry"`
+}
+
+type AtomLink struct {
+	Href string `xml:"href,attr"`
+}
+
+type AtomEntry struct {
+	Title     string     `xml:"title"`
+	Link      AtomLink   `xml:"link"`
+	ID        string     `xml:"id"`
+	Published string     `xml:"published"`
+	Updated   string     `xml:"updated"`
+	Content   AtomContent `xml:"content"`
+	Summary   string     `xml:"summary"`
+}
+
+type AtomContent struct {
+	Type string `xml:"type,attr"`
+	Text string `xml:",chardata"`
+}
+
+// ParseFeed attempts to parse XML as either RSS 2.0 or Atom format.
+// Returns normalized items regardless of source format.
+func parseFeed(data []byte) ([]FeedItem, error) {
+	// Try RSS first
+	if strings.Contains(string(data), "<rss") {
+		var rss RSS
+		if err := xml.Unmarshal(data, &rss); err == nil {
+			items := make([]FeedItem, 0, len(rss.Channel.Items))
+			for _, item := range rss.Channel.Items {
+				items = append(items, FeedItem{
+					Title:       item.Title,
+					Link:        item.Link,
+					Description: item.Description,
+					PubDate:     item.PubDate,
+					GUID:        item.GUID,
+				})
+			}
+			return items, nil
+		}
+	}
+	
+	// Try Atom
+	if strings.Contains(string(data), "<feed") {
+		var atom AtomFeed
+		if err := xml.Unmarshal(data, &atom); err == nil {
+			items := make([]FeedItem, 0, len(atom.Entries))
+			for _, entry := range atom.Entries {
+				content := entry.Content.Text
+				if content == "" {
+					content = entry.Summary
+				}
+				items = append(items, FeedItem{
+					Title:       entry.Title,
+					Link:        entry.Link.Href,
+					Description: content,
+					PubDate:     entry.Updated,
+					GUID:        entry.ID,
+				})
+			}
+			return items, nil
+		}
+	}
+	
+	return nil, fmt.Errorf("unable to parse XML feed")
+}
+
+// FeedItem is a normalized item from either RSS or Atom
+type FeedItem struct {
+	Title       string
+	Link        string
+	Description string
+	PubDate     string
+	GUID        string
+}
+
 func NewRSSAdapter(client *http.Client, ua string) *RSSAdapter {
 	return &RSSAdapter{client: client, ua: ua}
 }
@@ -61,9 +145,9 @@ func (a *RSSAdapter) Fetch(ctx context.Context, p ProviderInfo) (Result, error) 
 	}
 
 	// A feed we cannot parse is reported as an error, not as "operational".
-	var rss RSS
-	if err := xml.Unmarshal(data, &rss); err != nil {
-		return Result{HTTPStatus: httpResp.StatusCode}, fmt.Errorf("failed to parse RSS feed: %w", err)
+	items, err := parseFeed(data)
+	if err != nil {
+		return Result{HTTPStatus: httpResp.StatusCode}, fmt.Errorf("failed to parse RSS/Atom feed: %w", err)
 	}
 
 	// A status RSS feed is an archive, not a list of live incidents, and some
@@ -71,8 +155,8 @@ func (a *RSSAdapter) Fetch(ctx context.Context, p ProviderInfo) (Result, error) 
 	// release notes and announcements. Both have to be filtered out, or every
 	// historical entry is reported as a currently-open incident.
 	now := time.Now().UTC()
-	for _, item := range rss.Channel.Items {
-		incident := a.parseRSSItem(item)
+	for _, item := range items {
+		incident := a.parseFeedItem(item)
 		if incident.Title == "" {
 			continue
 		}
@@ -151,10 +235,8 @@ func isInformationalItem(title, body string) bool {
 	return false
 }
 
-// parseRSSItem converts an RSS item to our Incident type
-func (a *RSSAdapter) parseRSSItem(item RSSItem) Incident {
-	// RSS items often have HTML-encoded descriptions with multiple updates
-	// The title typically contains the service name and reference ID
+// parseFeedItem converts a normalized FeedItem (from RSS or Atom) to our Incident type
+func (a *RSSAdapter) parseFeedItem(item FeedItem) Incident {
 	title := strings.TrimSpace(item.Title)
 	description := a.stripHTML(item.Description)
 
