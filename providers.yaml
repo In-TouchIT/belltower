@@ -1762,10 +1762,11 @@ providers:
       name: Zoho
       category: SaaS
       page_url: https://us.zohostatus.com/
-      adapter: manual
+      adapter: rss
+      endpoint: https://us.zohostatus.com/rss
       tier: 3
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "Site24x7/StatusIQ RSS 2.0 feed"
     - id: zoom
       name: Zoom
       category: SaaS
