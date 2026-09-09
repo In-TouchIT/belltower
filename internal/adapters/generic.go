@@ -63,9 +63,17 @@ func (a *GenericJSONAdapter) extractStatus(data interface{}) Indicator {
 			lk := strings.ToLower(key)
 			if strings.Contains(lk, "status") || strings.Contains(lk, "level") || strings.Contains(lk, "indicator") {
 				if s, ok := val.(string); ok {
-					if ind := mapStringIndicator(s); ind != IndicatorUnknown {
+					if ind := mapGenericStatus(s); ind != IndicatorUnknown {
 						return ind
 					}
+				}
+			}
+			
+			// Check string values that might be status indicators
+			// (handles keys like "us", "uk", "region" with "operational" values)
+			if s, ok := val.(string); ok {
+				if ind := mapGenericStatus(s); ind != IndicatorUnknown {
+					return ind
 				}
 			}
 		}
@@ -86,4 +94,22 @@ func (a *GenericJSONAdapter) extractStatus(data interface{}) Indicator {
 	}
 	
 	return IndicatorUnknown
+}
+
+// mapGenericStatus maps various status strings to our Indicator type
+func mapGenericStatus(s string) Indicator {
+	switch strings.ToLower(s) {
+	case "none", "operational", "healthy", "success", "good", "all_good":
+		return IndicatorNone
+	case "minor", "degraded", "warning", "performance":
+		return IndicatorMinor
+	case "major", "partial_outage", "major_outage", "bad":
+		return IndicatorMajor
+	case "critical", "full_outage":
+		return IndicatorCritical
+	case "maintenance", "under_maintenance":
+		return IndicatorMaintenance
+	default:
+		return IndicatorUnknown
+	}
 }
