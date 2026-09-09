@@ -64,6 +64,9 @@ func NewRegistry(userAgent string, timeout time.Duration) *Registry {
 	r.Register("apple", NewAppleAdapter(client, userAgent))
 	r.Register("webex", NewWebexAdapter(client, userAgent))
 	r.Register("docusign", NewDocuSignStatusAdapter(client, userAgent))
+	r.Register("cachet", NewCachetAdapter(client, userAgent))
+	r.Register("statuscast", NewStatusCastAdapter(client, userAgent))
+	r.Register("spa", NewSPAAdapter(client, userAgent, detectBrowserPath()))
 
 	return r
 }

@@ -387,7 +387,7 @@ providers:
       adapter: manual
       tier: 3
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "Cachet-like API (non-standard response format). Needs custom handler."
     - id: compliance-scorecard
       name: Compliance Scorecard
       category: Compliance
@@ -440,10 +440,11 @@ providers:
       name: CyberArk
       category: Security
       page_url: https://status.cyberark.com/
-      adapter: manual
+      adapter: cachet
+      endpoint: https://status.cyberark.com/api/v1
       tier: 2
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "Cachet API - /api/v1/status, /api/v1/components, /api/v1/notices"
     - id: dnsfilter
       name: DNSFilter
       category: Security
@@ -1392,10 +1393,11 @@ providers:
       name: Servosity
       category: Backup
       page_url: https://status.servosity.com/
-      adapter: manual
+      adapter: cachet
+      endpoint: https://status.servosity.com/api/v1
       tier: 4
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "Cachet API"
     - id: sharefile
       name: ShareFile
       category: SaaS
