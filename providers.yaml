@@ -237,10 +237,11 @@ providers:
       name: Bitwarden
       category: Identity
       page_url: https://status.bitwarden.com/
-      adapter: manual
+      adapter: rss
+      endpoint: https://status.bitwarden.com/state_feed/feed.atom
       tier: 2
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "Hund.io status page with Atom feed"
     - id: blackpoint-cyber
       name: Blackpoint Cyber
       category: Security
@@ -703,10 +704,11 @@ providers:
       name: Hetzner
       category: Cloud
       page_url: https://status.hetzner.com/
-      adapter: manual
+      adapter: rss
+      endpoint: https://status.hetzner.com/en.atom
       tier: 1
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "Atom feed"
     - id: hornetsecurity
       name: Hornetsecurity
       category: Security
@@ -863,10 +865,11 @@ providers:
       name: Level
       category: RMM
       page_url: https://status.level.io/en
-      adapter: manual
+      adapter: rss
+      endpoint: https://status.level.io/en/feed
       tier: 4
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "RSS 2.0 feed"
     - id: linode-akamai
       name: Linode (Akamai)
       category: Cloud
@@ -1025,10 +1028,11 @@ providers:
       name: N-able
       category: RMM
       page_url: https://status.n-able.com/
-      adapter: manual
+      adapter: rss
+      endpoint: https://status.n-able.com/feed/
       tier: 4
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "WordPress RSS feed"
     - id: namecheap
       name: Namecheap
       category: Domains/DNS
@@ -1289,10 +1293,11 @@ providers:
       name: Redis
       category: DevOps
       page_url: https://status.redis.io/
-      adapter: manual
+      adapter: rss
+      endpoint: https://status.redis.io/data/rss.xml
       tier: 4
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "RSS 2.0 feed"
     - id: rewst
       name: Rewst
       category: Automation
