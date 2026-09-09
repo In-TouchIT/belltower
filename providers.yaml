@@ -502,10 +502,11 @@ providers:
       name: Docusign
       category: SaaS
       page_url: https://health.docusign.com/status
-      adapter: manual
+      adapter: docusign
+      endpoint: https://health.docusign.com/production/1ds/ssg/apps/health/dynamic
       tier: 3
       enabled: true
-      notes: Unknown status page platform - review manually
+      notes: "Custom JSON API with components and incidents endpoints"
     - id: drata
       name: Drata
       category: Compliance

@@ -63,6 +63,7 @@ func NewRegistry(userAgent string, timeout time.Duration) *Registry {
 	r.Register("salesforce", NewSalesforceAdapter(client, userAgent))
 	r.Register("apple", NewAppleAdapter(client, userAgent))
 	r.Register("webex", NewWebexAdapter(client, userAgent))
+	r.Register("docusign", NewDocuSignStatusAdapter(client, userAgent))
 
 	return r
 }
