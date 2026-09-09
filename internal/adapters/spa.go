@@ -41,9 +41,13 @@ type SPAConfig struct {
 	StatusSelector string `yaml:"status_selector"`
 }
 
-// NewSPAAdapter creates an SPA adapter. If browserPath is non-empty, it will
-// attempt to use headless Chrome/Firefox for rendering.
+// NewSPAAdapter creates an SPA adapter. If browserPath is empty, it will
+// auto-detect a headless browser.
 func NewSPAAdapter(client *http.Client, ua string, browserPath string) *SPAAdapter {
+	if browserPath == "" {
+		browserPath = detectBrowserPath()
+	}
+
 	return &SPAAdapter{
 		client:      client,
 		ua:          ua,
@@ -69,13 +73,12 @@ func (a *SPAAdapter) Fetch(ctx context.Context, p ProviderInfo) (Result, error) 
 
 // fetchWithBrowser uses headless Chrome to render the page and extract status
 func (a *SPAAdapter) fetchWithBrowser(ctx context.Context, p ProviderInfo, url string) (Result, error) {
-	// Try using chromium/chrome in headless mode
 	browser := a.browserPath
 	if browser == "" {
 		// Try common paths
-		for _, path := range []string{"chromium-browser", "chromium", "google-chrome", "chrome"} {
-			if _, err := exec.LookPath(path); err == nil {
-				browser = path
+		for _, path := range []string{"chromium-browser", "chromium", "google-chrome", "google-chrome-stable", "chrome"} {
+			if loc, err := exec.LookPath(path); err == nil && loc != "" {
+				browser = loc
 				break
 			}
 		}
@@ -85,14 +88,21 @@ func (a *SPAAdapter) fetchWithBrowser(ctx context.Context, p ProviderInfo, url s
 		return a.fetchWithExtraction(ctx, p, url)
 	}
 
-	// Render the page and extract content
+	// Render the page with virtual time budget to allow async operations
+	// (XHR/fetch) to complete. This handles pages that load data dynamically.
 	cmd := exec.CommandContext(ctx, browser,
 		"--headless",
 		"--no-sandbox",
 		"--disable-gpu",
 		"--disable-dev-shm-usage",
+		"--disable-extensions",
+		"--disable-background-timer-throttling",
+		"--disable-renderer-backgrounding",
+		"--disable-backgrounding-occluded-windows",
+		"--disable-ipc-flooding-protection",
 		"--dump-dom",
-		"--timeout=10000",
+		"--timeout=15000",
+		"--virtual-time-budget=10000",
 		url,
 	)
 
@@ -121,13 +131,12 @@ func (a *SPAAdapter) fetchWithExtraction(ctx context.Context, p ProviderInfo, ur
 // extractFromHTML tries multiple extraction methods to find status data
 func (a *SPAAdapter) extractFromHTML(ctx context.Context, p ProviderInfo, html string) (Result, error) {
 	result := Result{
-		Indicator:  IndicatorUnknown,
+		Indicator:  IndicatorNone,
 		HTTPStatus: 200,
 	}
 
 	// Method 1: Extract __NEXT_DATA__
 	if data, ok := extractNextData(html); ok {
-		// Try to find status information in Next.js data
 		if status := findStatusInJSON(data); status != "" {
 			result.Indicator = mapStringIndicator(status)
 		}
@@ -143,7 +152,7 @@ func (a *SPAAdapter) extractFromHTML(ctx context.Context, p ProviderInfo, html s
 		return result, nil
 	}
 
-	// Method 3: Look for embedded JSON with known patterns
+	// Method 3: Look for embedded window.__INITIAL_STATE__
 	if data, ok := extractEmbeddedJSON(html, "window.__INITIAL_STATE__"); ok {
 		if status := findStatusInJSON(data); status != "" {
 			result.Indicator = mapStringIndicator(status)
@@ -151,7 +160,47 @@ func (a *SPAAdapter) extractFromHTML(ctx context.Context, p ProviderInfo, html s
 		return result, nil
 	}
 
-	// Method 4: Try to find API endpoints in the HTML and call them
+	// Method 4: Look for StatusPage embedded data in script tags
+	if data, ok := extractScriptJSON(html); ok {
+		if status := findStatusInJSON(data); status != "" {
+			result.Indicator = mapStringIndicator(status)
+		}
+		// Try to parse as StatusPage format
+		var sp struct {
+			Page        map[string]interface{} `json:"page"`
+			Components  []map[string]interface{} `json:"components"`
+			Incidents   []map[string]interface{} `json:"incidents"`
+		}
+		if json.Unmarshal([]byte(data), &sp) == nil {
+			if len(sp.Components) > 0 {
+				for _, c := range sp.Components {
+					status, _ := c["status"].(string)
+					result.Components = append(result.Components, Component{
+						Name:   c["name"].(string),
+						Status: status,
+					})
+				}
+			}
+			if len(sp.Incidents) > 0 {
+				for _, inc := range sp.Incidents {
+					title, _ := inc["title"].(string)
+					status, _ := inc["status"].(string)
+					impact := "major"
+					if i, ok := inc["impact"]; ok {
+						impact = i.(string)
+					}
+					result.Incidents = append(result.Incidents, Incident{
+						Title:  title,
+						Status: status,
+						Impact: impact,
+					})
+				}
+			}
+			return result, nil
+		}
+	}
+
+	// Method 5: Try to find API endpoints in the HTML and call them
 	if apiURL, ok := findAPIEndpoints(html); ok {
 		apiResult, apiErr := a.fetchAPI(ctx, apiURL)
 		if apiErr == nil {
@@ -159,9 +208,96 @@ func (a *SPAAdapter) extractFromHTML(ctx context.Context, p ProviderInfo, html s
 		}
 	}
 
-	// If we couldn't extract any data, we need to report this as a failure
-	// rather than assuming operational - we don't know the status
+	// Method 6: Parse the rendered DOM for status indicators (best effort)
+	if comps, indicator, ok := parseRenderedDOM(html); ok {
+		result.Components = comps
+		result.Indicator = indicator
+		return result, nil
+	}
+
+	// If we couldn't extract any data, report as error
 	return result, fmt.Errorf("could not extract status data from SPA page %s", p.Name)
+}
+
+// extractScriptJSON extracts JSON from <script type="application/json"> tags
+func extractScriptJSON(html string) (string, bool) {
+	idx := strings.Index(html, `type="application/json"`)
+	if idx < 0 {
+		idx = strings.Index(html, `type='application/json'`)
+		if idx < 0 {
+			return "", false
+		}
+	}
+	
+	// Find the opening brace after the tag
+	start := strings.Index(html[idx:], ">")
+	if start < 0 {
+		return "", false
+	}
+	start += idx + 1
+	
+	// Find the closing tag
+	end := strings.Index(html[start:], "</script>")
+	if end < 0 {
+		return "", false
+	}
+	
+	return html[start : start+end], true
+}
+
+// parseRenderedDOM looks for status indicators in rendered HTML
+// This is a fallback for when embedded JSON isn't available
+func parseRenderedDOM(html string) ([]Component, Indicator, bool) {
+	statusPatterns := map[string]string{
+		// Icon patterns (Auth0, others)
+		"/img/icons/status/operational.svg":   "operational",
+		"/img/icons/status/degraded.svg":      "performance_issues",
+		"/img/icons/status/outage.svg":        "partial_outage",
+		"/img/icons/status/partial.svg":       "partial_outage",
+		"/img/icons/status/critical.svg":      "major_outage",
+		"/img/icons/status/maintenance.svg":   "under_maintenance",
+		// Status class patterns
+		"class=\"status-operational\"":        "operational",
+		"class=\"status-degraded\"":           "performance_issues",
+		"class=\"status-major\"":              "major_outage",
+		// Status text patterns
+		"All Regions Operational":            "operational",
+		"All Services Operational":           "operational",
+		"Everything is running smoothly":     "operational",
+		"All Zscaler Services are functional": "operational",
+		
+		// Incident/degraded indicators
+		"is now resolved":                    "resolved",
+		"Maintenances in progress":           "maintenance",
+		"outage":                             "partial_outage",
+		"degraded":                           "performance_issues",
+		"investigating":                      "investigating",
+		"identified":                         "identified",
+	}
+
+	// Check for operational status first (most common)
+	for pattern, status := range statusPatterns {
+		if strings.Contains(html, pattern) && 
+		   (status == "operational" || status == "resolved") {
+			return nil, IndicatorNone, true
+		}
+	}
+
+	// Check for issues - look for maintenance first
+	for pattern, status := range statusPatterns {
+		if strings.Contains(html, pattern) && status == "under_maintenance" {
+			return nil, IndicatorMaintenance, true
+		}
+	}
+
+	// Check for degraded/outage status
+	for pattern, status := range statusPatterns {
+		if strings.Contains(html, pattern) && status != "operational" && status != "resolved" && status != "under_maintenance" {
+			return nil, mapStringIndicator(status), true
+		}
+	}
+
+	return nil, IndicatorUnknown, false
 }
 
 // fetchAPI attempts to fetch a discovered API endpoint

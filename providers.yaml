@@ -75,10 +75,11 @@ providers:
       name: Adobe
       category: SaaS
       page_url: https://status.adobe.com/
-      adapter: manual
+      adapter: spa
+      endpoint: https://status.adobe.com/
       tier: 3
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "SPA page with browser rendering"
     - id: afiai
       name: Afi.ai
       category: Backup
@@ -579,10 +580,11 @@ providers:
       name: Fastly
       category: Cloud
       page_url: https://www.fastlystatus.com/
-      adapter: manual
+      adapter: spa
+      endpoint: https://www.fastlystatus.com/
       tier: 1
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "SPA page - StatusCast platform"
     - id: figma
       name: Figma
       category: SaaS
@@ -853,10 +855,11 @@ providers:
       name: LastPass
       category: Identity
       page_url: https://status.lastpass.com/
-      adapter: manual
+      adapter: spa
+      endpoint: https://status.lastpass.com/
       tier: 2
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "SPA page with browser rendering"
     - id: lets-encrypt
       name: Let's Encrypt
       category: Domains/DNS
@@ -1000,10 +1003,11 @@ providers:
       name: Mistral
       category: AI/ML
       page_url: https://status.mistral.ai/
-      adapter: manual
+      adapter: spa
+      endpoint: https://status.mistral.ai/
       tier: 2
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "SPA page - Nuxt.js"
     - id: mondaycom
       name: Monday.com
       category: SaaS
@@ -1113,10 +1117,11 @@ providers:
       name: OVHcloud
       category: Cloud
       page_url: https://www.status-ovhcloud.com/
-      adapter: manual
+      adapter: spa
+      endpoint: https://www.status-ovhcloud.com/
       tier: 1
       enabled: true
-      notes: 'Known issue: Custom status platform, not StatusPage.io'
+      notes: "SPA page"
     - id: okta
       name: Okta
       category: Security
@@ -1161,10 +1166,11 @@ providers:
       name: PagerDuty
       category: Monitoring
       page_url: https://status.pagerduty.com/
-      adapter: manual
+      adapter: spa
+      endpoint: https://status.pagerduty.com/
       tier: 4
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "SPA page - custom status platform"
     - id: palo-alto-networks
       name: Palo Alto Networks
       category: Security
@@ -1451,10 +1457,11 @@ providers:
       name: Sophos
       category: Security
       page_url: https://status.sophos.com/
-      adapter: manual
+      adapter: spa
+      endpoint: https://status.sophos.com/
       tier: 2
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "SPA page"
     - id: spectrum
       name: Spectrum
       category: Cable/ISP
@@ -1628,10 +1635,11 @@ providers:
       name: VIPRE
       category: Security
       page_url: https://status.vipre.com/
-      adapter: manual
+      adapter: spa
+      endpoint: https://status.vipre.com/
       tier: 2
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "SPA page - Status.io platform"
     - id: vade
       name: Vade
       category: Security
@@ -1757,10 +1765,11 @@ providers:
       name: ZeroTier
       category: Network
       page_url: https://status.zerotier.com/
-      adapter: manual
+      adapter: spa
+      endpoint: https://status.zerotier.com/
       tier: 4
       enabled: true
-      notes: Custom platform - not StatusPage.io
+      notes: "SPA page"
     - id: zoho
       name: Zoho
       category: SaaS
@@ -1782,10 +1791,11 @@ providers:
       name: Zscaler
       category: SASE
       page_url: https://trust.zscaler.com/
-      adapter: manual
+      adapter: spa
+      endpoint: https://trust.zscaler.com/
       tier: 2
       enabled: true
-      notes: 'HTML-only cloud status; discovered endpoints needing a scraper (review manually): cloud-status https://trust.zscaler.com/cloud-status, incidents https://trust.zscaler.com/incidents, ZIA https://trust.zscaler.com/zscaler.net/incidents, ZPA https://trust.zscaler.com/private.zscaler.com/cloud-status'
+      notes: "SPA page - React app with embedded data"
     - id: npm
       name: npm
       category: DevOps
