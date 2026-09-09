@@ -18,7 +18,7 @@ import (
 //
 // Component states: 0=operational, 1=performance_issues, 2=partial_outage, 3=major_outage
 // Notice types: incident, planned, technical
-// Notice states: scheduled, in_progress, verifying, resolved, closed
+// Notice states: scheduled, in_progress, verifying, resolved, closed, complete
 type CachetAdapter struct {
 	client *http.Client
 	ua     string
@@ -34,6 +34,26 @@ type CachetStatus struct {
 		URL       string `json:"url"`
 		UpdatedAt string `json:"updated_at"`
 	} `json:"page"`
+	// Some Cachet variants (e.g., Servosity) return state as a string
+	// in the root "data" object instead of the standard "page" structure.
+	// We handle this in fetchStatus via a separate unmarshal.
+}
+
+// cachetWrappedStatus handles the {"data": {"status": "success", ...}} variant
+type cachetWrappedStatus struct {
+	Data struct {
+		Status  string `json:"status"`
+		Message string `json:"message"`
+	} `json:"data"`
+}
+
+// cachetPageStringState handles when "page" has state as a string
+type cachetPageStringState struct {
+	Name      string `json:"name"`
+	State     string `json:"state"`      // "operational", "have_issues", etc.
+	StateText string `json:"state_text"`
+	URL       string `json:"url"`
+	UpdatedAt string `json:"updated_at"`
 }
 
 // CachetComponent represents a component in the Cachet API
@@ -88,13 +108,12 @@ func (a *CachetAdapter) Fetch(ctx context.Context, p ProviderInfo) (Result, erro
 	baseURL := strings.TrimSuffix(p.Endpoint, "/")
 
 	result := Result{
-		Indicator: IndicatorUnknown,
+		HTTPStatus: 200,
 	}
 
 	// Get overall status
 	status, statusErr := a.fetchStatus(ctx, baseURL+"/status")
 	if statusErr == nil {
-		result.HTTPStatus = 200
 		// Map Cachet page state to indicator
 		switch status.Page.State {
 		case 0:
@@ -116,19 +135,29 @@ func (a *CachetAdapter) Fetch(ctx context.Context, p ProviderInfo) (Result, erro
 	if len(rawComponents) > 0 {
 		hasMajor := false
 		hasMinor := false
+		allOperational := true
 		for _, c := range rawComponents {
+			// Cachet status codes:
+			// 0 = Not configured, 1 = Operational, 2 = Performance Issues,
+			// 3 = Partial Outage, 4 = Major Outage, 5 = Under Maintenance
 			switch c.Status {
-			case 3, 4: // major outage
+			case 4:
 				hasMajor = true
-			case 1, 2: // performance issues or partial outage
+				allOperational = false
+			case 2, 3, 5:
 				hasMinor = true
+				allOperational = false
+			case 0, 1:
+				// Not configured or operational - not an issue
 			}
 		}
 		if hasMajor {
 			result.Indicator = IndicatorMajor
 		} else if hasMinor {
-			result.Indicator = IndicatorMinor
-		} else {
+			if result.Indicator != IndicatorMajor {
+				result.Indicator = IndicatorMinor
+			}
+		} else if allOperational && result.Indicator == IndicatorUnknown {
 			result.Indicator = IndicatorNone
 		}
 	}
@@ -160,26 +189,47 @@ func (a *CachetAdapter) fetchStatus(ctx context.Context, url string) (*CachetSta
 		return nil, err
 	}
 
-	// Try standard Cachet format
+	body := httpResp.Body
+
+	// Try standard Cachet format (state as integer)
 	var status CachetStatus
-	if err := json.Unmarshal(httpResp.Body, &status); err == nil && status.Page.Name != "" {
+	if err := json.Unmarshal(body, &status); err == nil && status.Page.Name != "" {
 		return &status, nil
 	}
 
-	// Try wrapped format (ColoBlxs variant: {"data": {"status": "success"}})
-	var wrapped struct {
-		Data struct {
-			Status  string `json:"status"`
-			Message string `json:"message"`
-		} `json:"data"`
+	// Try alternate format where state is a string (Servosity variant)
+	var statusStr struct {
+		Page cachetPageStringState `json:"page"`
 	}
-	if err := json.Unmarshal(httpResp.Body, &wrapped); err == nil && wrapped.Data.Status != "" {
-		// Map "success" to operational
+	if err := json.Unmarshal(body, &statusStr); err == nil && statusStr.Page.Name != "" {
+		// Map string state to integer
+		state := mapCachetStringState(statusStr.Page.State)
+		return &CachetStatus{
+			Page: struct {
+				ID        int    `json:"id"`
+				Name      string `json:"name"`
+				State     int    `json:"state"`
+				StateText string `json:"state_text"`
+				URL       string `json:"url"`
+				UpdatedAt string `json:"updated_at"`
+			}{
+				ID:        0,
+				Name:      statusStr.Page.Name,
+				State:     state,
+				StateText: statusStr.Page.StateText,
+				URL:       statusStr.Page.URL,
+				UpdatedAt: statusStr.Page.UpdatedAt,
+			},
+		}, nil
+	}
+
+	// Try wrapped format (ColoBlxs variant: {"data": {"status": "success"}})
+	var wrapped cachetWrappedStatus
+	if err := json.Unmarshal(body, &wrapped); err == nil && wrapped.Data.Status != "" {
 		state := 0
-		if strings.Contains(strings.ToLower(wrapped.Data.Message), "operational") {
-			state = 0
-		} else {
-			state = 1 // assume issues
+		if !strings.Contains(strings.ToLower(wrapped.Data.Message), "operational") &&
+			!strings.Contains(strings.ToLower(wrapped.Data.Status), "operational") {
+			state = 1
 		}
 		return &CachetStatus{
 			Page: struct {
@@ -197,6 +247,21 @@ func (a *CachetAdapter) fetchStatus(ctx context.Context, url string) (*CachetSta
 	}
 
 	return nil, fmt.Errorf("unable to parse Cachet status response")
+}
+
+func mapCachetStringState(s string) int {
+	switch strings.ToLower(s) {
+	case "operational", "operational.", "success":
+		return 0
+	case "have_issues", "partial_outage", "performance_issues":
+		return 1
+	case "predefined":
+		return 1
+	case "major_outage":
+		return 2
+	default:
+		return 0
+	}
 }
 
 // fetchRawComponents returns raw Cachet components with numeric status
@@ -311,7 +376,7 @@ type CachetIncident struct {
 func (a *CachetAdapter) parseNotices(notices []CachetNotice) []Incident {
 	var incidents []Incident
 	for _, notice := range notices {
-		if notice.State == "resolved" || notice.State == "closed" {
+		if notice.State == "resolved" || notice.State == "closed" || notice.State == "complete" {
 			continue
 		}
 
